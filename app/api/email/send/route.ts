@@ -9,7 +9,7 @@ const createEmailService = () => {
   const providers = []
 
   // Add Resend provider with your API key
-  providers.push(new ResendProvider("re_idVyxM2g_5KwQmuZtBDtbLZttWDGpAisG"))
+  providers.push(new ResendProvider("re_U27c6rgT_M5c9FrJJo2xsr8qegTWLhy6p"))
 
   // Add mock provider as fallback
   providers.push(new MockEmailProviderA())
@@ -17,17 +17,17 @@ const createEmailService = () => {
   return new EmailService({
     providers,
     retry: {
-      maxAttempts: 3,
+      maxAttempts: 10,
       baseDelay: 1000,
       maxDelay: 10000,
       backoffMultiplier: 2,
     },
     rateLimit: {
-      maxRequests: 100,
+      maxRequests: 10000,
       windowMs: 60000,
     },
     circuitBreaker: {
-      failureThreshold: 5,
+      failureThreshold: 10,
       recoveryTimeout: 30000,
       monitoringPeriod: 60000,
     },
