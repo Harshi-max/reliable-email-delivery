@@ -65,11 +65,10 @@ npm install --legacy-peer-deps
 npm run dev
 \`\`\`
 
-### 3. **Configure Real Providers**
-Create a `.env.local` file:
-\`\`\`bash
+
 # Resend (Recommended)
 RESEND_API_KEY=your_resend_api_key
+in api route file keep the key
 
 # Note 
 Resend has a limit in sending mails so change the key to send to more mails
