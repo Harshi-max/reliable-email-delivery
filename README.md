@@ -209,14 +209,7 @@ Built with modern technologies and inspired by enterprise email services:
 - **TypeScript** - Type safety
 - **Tailwind CSS** - Styling
 - **Resend** - Email delivery
-- **Jest** - Testing framework
-
----
-
-## 📞 Support
-
-- 🐛 **Issues**: [GitHub Issues](./issues)
-- 💬 **Discussions**: [GitHub Discussions](./discussions)
+- **Node.js**- Backend
 
 ---
 
