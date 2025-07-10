@@ -64,14 +64,11 @@ npm install --legacy-peer-deps
 # Start development server
 npm run dev
 \`\`\`
-
-
-# Resend (Recommended)
+# Create .env.local 
 RESEND_API_KEY=your_resend_api_key
-in api route file keep the key
 
 # Note 
-Resend has a limit in sending mails so change the key to send to more mails
+Resend has a limit in sending mails so change the key to send mails
 
 
 ---
