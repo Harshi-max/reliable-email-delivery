@@ -71,6 +71,9 @@ Create a `.env.local` file:
 # Resend (Recommended)
 RESEND_API_KEY=your_resend_api_key
 
+# Note 
+Resend has a limit in sending mails so change the key to send to more mails
+
 
 ---
 
