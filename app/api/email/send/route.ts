@@ -9,8 +9,12 @@ const createEmailService = () => {
   const providers = []
 
   // Add Resend provider with your API key
-  providers.push(new ResendProvider("re_U27c6rgT_M5c9FrJJo2xsr8qegTWLhy6p"))
-
+  // Use environment variable
+providers.push(new ResendProvider(process.env.RESEND_API_KEY!))
+  if(!process.env.RESEND_API_KEY) {
+    console.warn("⚠️ RESEND_API_KEY is not set. Using mock provider for testing.")
+  }
+  
   // Add mock provider as fallback
   providers.push(new MockEmailProviderA())
 
