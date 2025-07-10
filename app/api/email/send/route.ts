@@ -9,7 +9,7 @@ const createEmailService = () => {
   const providers = []
 
   // Add Resend provider with your API key
-  providers.push(new ResendProvider("re_2HBELJFi_F1TAqXQf7MBQbha99oP8Lroi"))
+  providers.push(new ResendProvider("re_idVyxM2g_5KwQmuZtBDtbLZttWDGpAisG"))
 
   // Add mock provider as fallback
   providers.push(new MockEmailProviderA())
