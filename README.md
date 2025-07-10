@@ -52,35 +52,17 @@ Real-time email monitoring with:
 ### 1. **Installation**
 \`\`\`bash
 # Clone the repository
-git clone <repository-url>
-cd resilient-email-service
+git clone https://github.com/Harshi-max/reliable-email-delivery.git
+
+cd reliable-email-delivery
 
 # Install dependencies
 npm install
+or 
+npm install --legacy-peer-deps
 
 # Start development server
 npm run dev
-\`\`\`
-
-### 2. **Basic Usage**
-\`\`\`typescript
-import { EmailService } from './lib/email/EmailService'
-
-const emailService = new EmailService()
-
-const emailRequest = {
-  to: 'recipient@example.com',
-  from: 'sender@example.com',
-  subject: 'Hello World',
-  body: 'This is a test email'
-}
-
-try {
-  const result = await emailService.sendEmail(emailRequest)
-  console.log('Email sent:', result)
-} catch (error) {
-  console.error('Failed to send email:', error)
-}
 \`\`\`
 
 ### 3. **Configure Real Providers**
@@ -89,16 +71,8 @@ Create a `.env.local` file:
 # Resend (Recommended)
 RESEND_API_KEY=your_resend_api_key
 
-# SendGrid
-SENDGRID_API_KEY=your_sendgrid_api_key
 
-# SMTP
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-\`\`\`
+---
 
 ## 🏗️ Architecture
 
@@ -117,96 +91,7 @@ EmailService (Main orchestrator)
 ├── 🔒 IdempotencyManager (Duplicate prevention)
 ├── 📝 Logger (Structured logging)
 └── 📋 Queue System (Failed email handling)
-\`\`\`
-
-## 📚 Advanced Configuration
-
-### **Retry Configuration**
-\`\`\`typescript
-const emailService = new EmailService({
-  retry: {
-    maxAttempts: 5,           // Maximum retry attempts
-    baseDelay: 1000,          // Base delay in milliseconds
-    maxDelay: 30000,          // Maximum delay cap
-    backoffMultiplier: 2      // Exponential multiplier
-  }
-})
-\`\`\`
-
-### **Rate Limiting**
-\`\`\`typescript
-const emailService = new EmailService({
-  rateLimit: {
-    maxRequests: 100,         // Requests per window
-    windowMs: 60000           // Time window (1 minute)
-  }
-})
-\`\`\`
-
-### **Circuit Breaker**
-\`\`\`typescript
-const emailService = new EmailService({
-  circuitBreaker: {
-    failureThreshold: 5,      // Failures to open circuit
-    recoveryTimeout: 30000,   // Recovery attempt delay
-    monitoringPeriod: 60000   // Monitoring window
-  }
-})
-\`\`\`
-
-## 🔧 API Reference
-
-### **EmailService**
-
-#### **Constructor**
-\`\`\`typescript
-new EmailService(config?: Partial<EmailServiceConfig>)
-\`\`\`
-
-#### **Methods**
-
-##### `sendEmail(request, idempotencyKey?)`
-Send an email with optional idempotency protection.
-
-\`\`\`typescript
-const result = await emailService.sendEmail({
-  to: 'user@example.com',
-  from: 'noreply@yourapp.com',
-  subject: 'Welcome!',
-  body: 'Welcome to our service!',
-  html: '<h1>Welcome!</h1><p>Welcome to our service!</p>'
-}, 'unique-request-id')
-\`\`\`
-
-##### `getProviderStatus()`
-Get current status of all email providers.
-
-\`\`\`typescript
-const status = emailService.getProviderStatus()
-// Returns: Array<{ name: string, healthy: boolean, circuitBreakerState: string }>
-\`\`\`
-
-##### `getQueueStatus()`
-Get current queue status and pending emails.
-
-\`\`\`typescript
-const queueStatus = emailService.getQueueStatus()
-// Returns: { length: number, items: QueuedEmail[] }
-\`\`\`
-
-## 🧪 Testing
-
-### **Run Tests**
-\`\`\`bash
-# Run all tests
-npm test
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run tests in watch mode
-npm run test:watch
-\`\`\`
+---
 
 ### **Test Coverage**
 The service includes comprehensive unit tests covering:
@@ -284,34 +169,6 @@ The service includes comprehensive unit tests covering:
 - **CPU**: Minimal overhead
 - **Network**: Efficient connection pooling
 
-## 🛠️ Troubleshooting
-
-### **Common Issues**
-
-#### **Provider Configuration**
-\`\`\`bash
-# Check if providers are configured
-curl http://localhost:3000/api/status
-\`\`\`
-
-#### **Rate Limiting**
-\`\`\`bash
-# Check rate limit status
-curl http://localhost:3000/api/rate-limit
-\`\`\`
-
-#### **Queue Issues**
-\`\`\`bash
-# Check queue status
-curl http://localhost:3000/api/queue/status
-\`\`\`
-
-### **Debug Logging**
-Enable debug logging for detailed troubleshooting:
-\`\`\`typescript
-const logger = new Logger()
-logger.setLogLevel('debug')
-\`\`\`
 
 ## 🔮 Future Enhancements
 
@@ -344,9 +201,6 @@ logger.setLogLevel('debug')
 - Comprehensive test coverage
 - Clear documentation
 
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
@@ -361,8 +215,6 @@ Built with modern technologies and inspired by enterprise email services:
 
 ## 📞 Support
 
-- 📧 **Email**: support@yourapp.com
-- 📚 **Documentation**: [Full API Docs](./docs)
 - 🐛 **Issues**: [GitHub Issues](./issues)
 - 💬 **Discussions**: [GitHub Discussions](./discussions)
 
@@ -372,6 +224,6 @@ Built with modern technologies and inspired by enterprise email services:
 
 **⭐ Star this repository if you find it helpful!**
 
-Built with ❤️ for reliable email delivery
+
 
 </div>
