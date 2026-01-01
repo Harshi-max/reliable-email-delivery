@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ThemeToggle } from "@/components/theme-toggle"
 import {
   Loader2,
   Mail,
@@ -246,6 +247,7 @@ export default function EmailDashboard() {
               <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
               Live System
             </Badge>
+            <ThemeToggle />
           </div>
 
           {/* Quick Stats */}
@@ -651,14 +653,16 @@ export default function EmailDashboard() {
         </Tabs>
 
         {/* Features Overview */}
-        <Card className="mt-8 shadow-lg animate-fade-in delay-500">
-          <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100">
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-yellow-500" />
-              Enterprise Features
-            </CardTitle>
-            <CardDescription>Advanced reliability and monitoring capabilities</CardDescription>
-          </CardHeader>
+       <Card className="mt-8 shadow-lg animate-fade-in delay-500">
+  <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 dark:text-white">
+    <CardTitle className="flex items-center gap-2 dark:text-white">
+      <Zap className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
+      Enterprise Features
+    </CardTitle>
+    <CardDescription className="dark:text-gray-300">
+      Advanced reliability and monitoring capabilities
+    </CardDescription>
+  </CardHeader>
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="flex items-start gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow">

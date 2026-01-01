@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-
+import { ThemeProvider } from "@/app/providers/theme-providers"
 export const metadata: Metadata = {
   title: 'v0 App',
   description: 'Created with v0',
@@ -9,12 +9,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <ThemeProvider defaultTheme="light" storageKey="email-service-theme">
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   )
 }
