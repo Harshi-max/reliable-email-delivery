@@ -4,11 +4,17 @@
 
 body {
   font-family: Arial, Helvetica, sans-serif;
+  @apply bg-background text-foreground;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  
+  /* Force dark backgrounds on all containers */
+  .dark-force-bg {
+    @apply bg-background;
   }
 }
 
@@ -48,38 +54,39 @@ body {
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+  
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
+    --card: 0 0% 7.9%; /* Darker card background */
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
+    --popover: 0 0% 7.9%; /* Darker popover background */
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
     --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
+    --secondary: 0 0% 20.9%; /* Slightly lighter for better contrast */
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
+    --muted: 0 0% 18.9%; /* Darker muted */
+    --muted-foreground: 0 0% 70.9%; /* Brighter text for better visibility */
+    --accent: 0 0% 20.9%; /* Consistent with secondary */
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
+    --border: 0 0% 25.9%; /* Darker borders */
+    --input: 0 0% 20.9%;
     --ring: 0 0% 83.1%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
+    --sidebar-background: 240 5.9% 12%; /* Darker sidebar */
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent: 240 3.7% 18.9%; /* Darker sidebar accent */
     --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-border: 240 3.7% 20.9%; /* Darker sidebar border */
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
@@ -88,7 +95,31 @@ body {
   * {
     @apply border-border;
   }
+  
+  html {
+    @apply h-full;
+  }
+  
   body {
-    @apply bg-background text-foreground;
+    @apply h-full bg-background text-foreground antialiased;
+  }
+  
+  /* Force all containers to use dark backgrounds in dark mode */
+  .dark :where(.card, .popover, .container, .panel, .section, .box, .content, .status-container) {
+    @apply bg-card text-card-foreground;
+  }
+  
+  /* Target specific elements that might be stubborn */
+  .dark [class*="container"],
+  .dark [class*="panel"],
+  .dark [class*="card"],
+  .dark [class*="box"],
+  .dark [class*="content"] {
+    @apply bg-card;
+  }
+  
+  /* Make sure all direct children of body get the dark background */
+  .dark > * {
+    @apply bg-background;
   }
 }

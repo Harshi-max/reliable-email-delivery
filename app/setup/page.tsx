@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Mail, Settings, Key, Server, AlertTriangle, CheckCircle, Copy, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
-
+import { ThemeToggle } from "@/components/theme-toggle"
 export default function SetupPage() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -27,7 +27,8 @@ export default function SetupPage() {
               <p className="text-muted-foreground">Configure real email providers to start sending actual emails</p>
             </div>
           </div>
-
+           <ThemeToggle />
+           
           <Alert className="mb-6">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
