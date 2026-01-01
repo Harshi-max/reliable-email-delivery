@@ -27,6 +27,7 @@ import {
   Shield,
   Timer,
   ArrowLeft,
+  Palette,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -344,6 +345,27 @@ export default function EmailDashboard() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-6 space-y-4">
+                    <div className="mb-4">
+                      <Link href="/builder">
+                        <Button
+                          className="w-full h-12 border-2 border-dashed border-blue-300 hover:border-blue-500 hover:bg-blue-50 transition-all bg-gradient-to-r from-blue-50 to-purple-50"
+                        >
+                          <Palette className="mr-2 h-5 w-5 text-blue-500" />
+                          <span className="text-blue-600 font-medium">Design Email Template</span>
+                        </Button>
+                      </Link>
+                      <p className="text-xs text-gray-500 mt-2 text-center">Create beautiful emails with drag-and-drop builder</p>
+                    </div>
+                    
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-white px-2 text-muted-foreground">Or send plain text</span>
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="email" className="text-sm font-medium">
                         To Email Address

@@ -9,6 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^3.9.1",
     "@jest/globals": "latest",
     "@radix-ui/react-accordion": "1.2.2",
@@ -51,6 +52,7 @@
     "next-themes": "^0.4.4",
     "node-notifier": "latest",
     "react": "^19",
+    "react-colorful": "^5.6.1",
     "react-day-picker": "8.10.1",
     "react-dom": "^19",
     "react-hook-form": "^7.54.1",

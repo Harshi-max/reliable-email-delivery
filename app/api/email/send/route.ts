@@ -45,10 +45,10 @@ const emailService = createEmailService()
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { to, subject, body: emailBody } = body
+    const { to, subject, body: emailBody, html } = body
 
-    if (!to || !subject || !emailBody) {
-      return NextResponse.json({ error: "Missing required fields: to, subject, body" }, { status: 400 })
+    if (!to || !subject || (!emailBody && !html)) {
+      return NextResponse.json({ error: "Missing required fields: to, subject, and body or html" }, { status: 400 })
     }
 
     // Validate email format
@@ -60,15 +60,15 @@ export async function POST(request: NextRequest) {
     const emailRequest: EmailRequest = {
       to,
       subject,
-      body: emailBody,
+      body: emailBody || "Email sent via template builder",
       from: "harshithaarava31@gmail.com", // Resend's verified sender for testing
-      html: `
+      html: html || `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px;">
             ${subject}
           </h2>
           <div style="margin: 20px 0; line-height: 1.6;">
-            ${emailBody.replace(/\n/g, "<br>")}
+            ${emailBody ? emailBody.replace(/\n/g, "<br>") : ""}
           </div>
           <div style="margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 5px;">
             <p style="margin: 0; color: #666; font-size: 14px;">
@@ -79,19 +79,25 @@ export async function POST(request: NextRequest) {
       `,
     }
 
-    console.log(`🚀 Attempting to send real email to: ${to}`)
+    console.log(`🚀 Attempting to send email to: ${to}`)
     console.log(`📧 Subject: ${subject}`)
+    console.log(`🎨 Using ${html ? 'custom template' : 'default template'}`)
 
     const result = await emailService.sendEmail(emailRequest)
 
-    console.log(`✅ Email sent successfully:`, result)
+    console.log(`✅ Email sent successfully:`, {
+      id: result.id,
+      status: result.status,
+      provider: result.provider,
+      hasCustomTemplate: !!html
+    })
 
     return NextResponse.json({
       id: result.id,
       status: result.status,
       provider: result.provider,
       attempts: result.attempts,
-      message: "Email sent successfully via Resend!",
+      message: html ? "Email sent successfully with custom template!" : "Email sent successfully via Resend!",
     })
   } catch (error) {
     console.error("❌ Email sending failed:", error)
