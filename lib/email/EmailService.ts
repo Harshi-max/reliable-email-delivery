@@ -1,4 +1,4 @@
-import type { EmailRequest, EmailResponse, EmailProvider, EmailServiceConfig, QueuedEmail } from "./types"
+import type { EmailRequest, EmailResponse, EmailProvider, EmailServiceConfig, QueuedEmail, QueueManager } from "./types"
 import { ResendProvider } from "./providers/ResendProvider"
 import { MockEmailProviderA } from "./providers/MockEmailProviderA"
 import { MockEmailProviderB } from "./providers/MockEmailProviderB"
@@ -7,6 +7,7 @@ import { RateLimiter } from "./utils/RateLimiter"
 import { CircuitBreaker } from "./utils/CircuitBreaker"
 import { IdempotencyManager } from "./utils/IdempotencyManager"
 import { Logger } from "./utils/Logger"
+import { MemoryQueueManager } from "./utils/MemoryQueueManager"
 
 export class EmailService {
   private providers: EmailProvider[]
@@ -15,7 +16,7 @@ export class EmailService {
   private circuitBreakers: Map<string, CircuitBreaker>
   private idempotencyManager: IdempotencyManager
   private logger: Logger
-  private emailQueue: QueuedEmail[]
+  private queueManager: QueueManager
   private config: EmailServiceConfig
   private queueProcessor?: NodeJS.Timeout
 
@@ -53,20 +54,30 @@ export class EmailService {
     this.circuitBreakers = new Map()
     this.idempotencyManager = new IdempotencyManager()
     this.logger = new Logger()
-    this.emailQueue = []
+    this.queueManager = config?.queueManager || new MemoryQueueManager()
 
     // Initialize circuit breakers for each provider
     this.providers.forEach((provider) => {
       this.circuitBreakers.set(provider.name, new CircuitBreaker(this.config.circuitBreaker, provider.name))
     })
 
-    if (this.config.enableQueue) {
-      this.startQueueProcessor()
-    }
-
     this.logger.info("Email service initialized with providers:", {
       providers: this.providers.map((p) => p.name),
     })
+  }
+
+  /**
+   * Starts the queue processor loop. 
+   * Note: In serverless environments, this should be called with caution 
+   * or replaced with a cron job triggering processQueue().
+   */
+  public startQueueProcessor(): void {
+    if (this.queueProcessor) return
+
+    this.queueProcessor = setInterval(() => {
+      this.processQueue()
+    }, this.config.queueProcessingInterval)
+    this.logger.info("Queue processor started")
   }
 
   async sendEmail(request: EmailRequest, idempotencyKey?: string): Promise<EmailResponse> {
@@ -118,7 +129,7 @@ export class EmailService {
       this.idempotencyManager.storeResponse(requestId, response)
 
       if (this.config.enableQueue) {
-        this.addToQueue(request, requestId)
+        await this.addToQueue(request, requestId)
       }
 
       throw error
@@ -179,7 +190,7 @@ export class EmailService {
     throw lastError || new Error("All providers failed")
   }
 
-  private addToQueue(request: EmailRequest, requestId: string): void {
+  private async addToQueue(request: EmailRequest, requestId: string): Promise<void> {
     const queuedEmail: QueuedEmail = {
       id: requestId,
       request,
@@ -188,35 +199,30 @@ export class EmailService {
       createdAt: new Date(),
     }
 
-    this.emailQueue.push(queuedEmail)
+    await this.queueManager.push(queuedEmail)
     this.logger.info(`Added email to queue`, { requestId })
   }
 
-  private startQueueProcessor(): void {
-    this.queueProcessor = setInterval(() => {
-      this.processQueue()
-    }, this.config.queueProcessingInterval)
-  }
-
   private async processQueue(): Promise<void> {
-    if (this.emailQueue.length === 0) return
+    const emails = await this.queueManager.getAll()
+    if (emails.length === 0) return
 
     const now = new Date()
-    const readyEmails = this.emailQueue.filter((email) => email.nextRetry <= now)
+    const readyEmails = emails.filter((email) => new Date(email.nextRetry) <= now)
 
     for (const queuedEmail of readyEmails) {
       try {
         await this.sendEmail(queuedEmail.request, queuedEmail.id)
 
         // Remove from queue on success
-        this.emailQueue = this.emailQueue.filter((email) => email.id !== queuedEmail.id)
+        await this.queueManager.remove(queuedEmail.id)
         this.logger.info(`Successfully processed queued email`, { requestId: queuedEmail.id })
       } catch (error) {
         queuedEmail.attempts++
 
         if (queuedEmail.attempts >= this.config.retry.maxAttempts) {
           // Remove from queue after max attempts
-          this.emailQueue = this.emailQueue.filter((email) => email.id !== queuedEmail.id)
+          await this.queueManager.remove(queuedEmail.id)
           this.logger.error(`Removing email from queue after max attempts`, {
             requestId: queuedEmail.id,
             attempts: queuedEmail.attempts,
@@ -228,6 +234,7 @@ export class EmailService {
             this.config.retry.maxDelay,
           )
           queuedEmail.nextRetry = new Date(Date.now() + delay)
+          await this.queueManager.update(queuedEmail)
 
           this.logger.info(`Rescheduled queued email for retry`, {
             requestId: queuedEmail.id,
@@ -244,10 +251,11 @@ export class EmailService {
     return hash.substring(0, 16)
   }
 
-  getQueueStatus(): { length: number; items: QueuedEmail[] } {
+  async getQueueStatus(): Promise<{ length: number; items: QueuedEmail[] }> {
+    const emails = await this.queueManager.getAll()
     return {
-      length: this.emailQueue.length,
-      items: [...this.emailQueue],
+      length: emails.length,
+      items: emails,
     }
   }
 

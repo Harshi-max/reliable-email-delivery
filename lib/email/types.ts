@@ -45,6 +45,7 @@ export interface EmailServiceConfig {
   circuitBreaker: CircuitBreakerConfig
   enableQueue: boolean
   queueProcessingInterval: number
+  queueManager?: QueueManager
 }
 
 export enum CircuitBreakerState {
@@ -59,4 +60,14 @@ export interface QueuedEmail {
   attempts: number
   nextRetry: Date
   createdAt: Date
+}
+
+export interface QueueManager {
+  push(email: QueuedEmail): Promise<void>
+  pop(): Promise<QueuedEmail | undefined>
+  peek(): Promise<QueuedEmail | undefined>
+  getAll(): Promise<QueuedEmail[]>
+  remove(id: string): Promise<void>
+  update(email: QueuedEmail): Promise<void>
+  size(): Promise<number>
 }

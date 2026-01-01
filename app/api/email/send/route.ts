@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import { EmailService } from "@/lib/email/EmailService"
 import { ResendProvider } from "@/lib/email/providers/ResendProvider"
 import { MockEmailProviderA } from "@/lib/email/providers/MockEmailProviderA"
+import { MemoryQueueManager } from "@/lib/email/utils/MemoryQueueManager"
+import { FileSystemQueueManager } from "@/lib/email/utils/FileSystemQueueManager"
 import type { EmailRequest } from "@/lib/email/types"
 
 // Create email service with real Resend provider
@@ -10,11 +12,11 @@ const createEmailService = () => {
 
   // Add Resend provider with your API key
   // Use environment variable
-providers.push(new ResendProvider(process.env.RESEND_API_KEY!))
-  if(!process.env.RESEND_API_KEY) {
+  providers.push(new ResendProvider(process.env.RESEND_API_KEY!))
+  if (!process.env.RESEND_API_KEY) {
     console.warn("⚠️ RESEND_API_KEY is not set. Using mock provider for testing.")
   }
-  
+
   // Add mock provider as fallback
   providers.push(new MockEmailProviderA())
 
@@ -37,6 +39,9 @@ providers.push(new ResendProvider(process.env.RESEND_API_KEY!))
     },
     enableQueue: true,
     queueProcessingInterval: 5000,
+    // Use FileSystemQueueManager for persistence in local/VPS environments.
+    // For true serverless (Vercel), you'd implement a RedisQueueManager or DatabaseQueueManager.
+    queueManager: new FileSystemQueueManager()
   })
 }
 
