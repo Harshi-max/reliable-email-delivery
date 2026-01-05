@@ -82,27 +82,24 @@ Resend has a limit in sending mails so change the key to send mails
 The service follows **SOLID principles** and implements a **clean architecture**:
 
 \`\`\`
-EmailService (Main Orchestrator)
-┃
-┣━━ 📦 Providers (Strategy Pattern)
-┃   ┣━━ 🔹 ResendProvider (Primary)
-┃   ┣━━ 🔸 SendGridProvider (Fallback)
-┃   ┣━━ 📧 NodemailerProvider (SMTP)
-┃   ┗━━ 🧪 MockProviders (Testing)
-┃
-┣━━ 🛠 Resilience Layers
-┃   ┣━━ 🔄 RetryManager ....... [Exponential Backoff]
-┃   ┣━━ 🚦 RateLimiter ........ [Token Bucket]
-┃   ┗━━ ⚡ CircuitBreaker ...... [Failure Detection]
-┃
-┣━━ 🛡 Security & Integrity
-┃   ┣━━ 🔒 IdempotencyManager . [Duplicate Prevention]
-┃   ┗━━ 📋 Queue System ....... [Failed Email Recovery]
-┃
-┗━━ 📊 Observability
-    ┗━━ 📝 Logger ............. [Structured JSON Logging]
-    
 
+EmailService (Main Orchestrator)
+├── 📦 Providers (Strategy Pattern)
+│   ├── 🔹 ResendProvider (Primary)
+│   ├── 🔸 SendGridProvider (Fallback)
+│   ├── 📧 NodemailerProvider (SMTP)
+│   └── 🧪 MockProviders (Testing)
+├── 🛠️ Resilience Layers
+│   ├── 🔄 RetryManager ....... [Exponential Backoff]
+│   ├── 🚦 RateLimiter ........ [Token Bucket]
+│   └── ⚡ CircuitBreaker ...... [Failure Detection]
+├── 🛡️ Security & Integrity
+│   ├── 🔒 IdempotencyManager . [Duplicate Prevention]
+│   └── 📋 Queue System ....... [Failed Email Recovery]
+└── 📊 Observability
+    └── 📝 Logger ............. [Structured JSON Logging]
+
+    
 ### **Test Coverage**
 The service includes comprehensive unit tests covering:
 - ✅ Email sending functionality
