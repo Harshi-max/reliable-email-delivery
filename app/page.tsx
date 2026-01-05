@@ -18,7 +18,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import Link from "next/link"
-
+import { ThemeToggle } from "@/components/theme-toggle" 
 export default function LandingPage() {
   const [isHovered, setIsHovered] = useState(false)
 
@@ -81,7 +81,7 @@ export default function LandingPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
@@ -108,6 +108,7 @@ export default function LandingPage() {
               <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
               Live Demo
             </Badge>
+            <ThemeToggle />
           </div>
         </header>
 
