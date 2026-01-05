@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import BackButton from "@/components/navigation/BackButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -224,12 +225,7 @@ export default function EmailDashboard() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <Link href="/">
-                <Button variant="ghost" size="sm" className="hover:bg-white/80">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Home
-                </Button>
-              </Link>
+              <BackButton fallback="/" label="Back" />
               <div className="h-6 w-px bg-gray-300"></div>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-600 rounded-lg">
