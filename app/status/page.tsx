@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, XCircle, RefreshCw, Mail, Server, Activity } from "lucide-react"
+import NavLink from "@/components/ui/nav-link"
+import ScrollToTop from "@/components/ui/scroll-to-top"
 
 interface ProviderStatus {
   name: string
@@ -62,15 +64,66 @@ export default function StatusPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="container mx-auto p-6 max-w-4xl">
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-green-600 rounded-lg">
-              <Activity className="h-6 w-6 text-white" />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-600 rounded-lg">
+                <Activity className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                  Service Status
+                </h1>
+                <p className="text-muted-foreground">Real-time status of email providers and system health</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                Service Status
-              </h1>
-              <p className="text-muted-foreground">Real-time status of email providers and system health</p>
+            
+            {/* Status Page Navigation with Active Highlighting */}
+            <div className="flex items-center gap-4">
+              <NavLink
+                href="/"
+                className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                Home
+              </NavLink>
+              
+              <NavLink
+                href="/dashboard"
+                className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                Dashboard
+              </NavLink>
+              
+              <NavLink
+                href="/builder"
+                className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                Builder
+              </NavLink>
+              
+              <NavLink
+                href="/setup"
+                className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                Setup
+              </NavLink>
+              
+              <NavLink
+                href="/status"
+                exact
+                className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                Status
+              </NavLink>
             </div>
           </div>
 
@@ -213,6 +266,8 @@ export default function StatusPage() {
           </Alert>
         </div>
       </div>
+      
+      <ScrollToTop />
     </div>
   )
 }

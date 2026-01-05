@@ -11,7 +11,12 @@ import { DragComponents } from "@/components/EmailTemplateBuilder/DragComponents
 import { PropertiesPanel } from "@/components/EmailTemplateBuilder/PropertiesPanel"
 import { LivePreview } from "@/components/EmailTemplateBuilder/LivePreview"
 import { TemplateGallery } from "@/components/EmailTemplateBuilder/TemplateGallery"
-import { EmailComponent } from "@/components/EmailTemplateBuilder/Builder"
+interface EmailComponent {
+  id: string
+  type: "text" | "image" | "button" | "social" | "divider"
+  content: string
+  styles: { [key: string]: any }
+}
 
 export default function EmailBuilderPage() {
   const [components, setComponents] = useState<EmailComponent[]>([])
