@@ -30,11 +30,14 @@ import {
   ArrowLeft,
   Palette,
   Copy,
+  AlertCircle,
+  Info,
 } from "lucide-react"
 import Link from "next/link"
 import ScrollToTop from "@/components/ui/scroll-to-top"
 import NavLink from "@/components/ui/nav-link"
 import CopyButton from "@/components/ui/copy-button"
+import { CharacterCounter } from "@/components/ui/character-counter"
 import toast, { Toaster } from "react-hot-toast"
 
 interface EmailStatus {
@@ -110,11 +113,16 @@ export default function EmailDashboard() {
     rateLimitRemaining: 100,
   })
   const [activeTab, setActiveTab] = useState("send")
+  
+  // Character counter states
+  const [subjectCharCount, setSubjectCharCount] = useState(0)
+  const [bodyCharCount, setBodyCharCount] = useState(0)
+  const [bodyCharLimit] = useState(5000)
+  const [subjectCharLimit] = useState(100)
 
   // Simulate real-time updates
   useEffect(() => {
     const interval = setInterval(() => {
-      // Update provider status
       setProviders([
         {
           name: "Resend (Primary)",
@@ -132,14 +140,12 @@ export default function EmailDashboard() {
         },
       ])
 
-      // Update metrics
       setMetrics((prev) => ({
         ...prev,
         rateLimitRemaining: Math.max(0, prev.rateLimitRemaining - Math.random() * 2),
         avgResponseTime: 175 + Math.random() * 50,
       }))
 
-      // Simulate new email status
       if (Math.random() > 0.7) {
         const newStatus: EmailStatus = {
           id: `task_${Date.now()}`,
@@ -160,6 +166,22 @@ export default function EmailDashboard() {
   const handleSendEmail = async () => {
     if (!email || !subject || !body) {
       toast.error("Please fill all fields", {
+        duration: 3000,
+        position: "bottom-right",
+      })
+      return
+    }
+    
+    if (subjectCharCount > subjectCharLimit) {
+      toast.error(`Subject exceeds ${subjectCharLimit} characters`, {
+        duration: 3000,
+        position: "bottom-right",
+      })
+      return
+    }
+    
+    if (bodyCharCount > bodyCharLimit) {
+      toast.error(`Body exceeds ${bodyCharLimit} characters`, {
         duration: 3000,
         position: "bottom-right",
       })
@@ -195,17 +217,17 @@ export default function EmailDashboard() {
         }
         setEmailStatuses((prev) => [newStatus, ...prev.slice(0, 19)])
 
-        // Update metrics
         setMetrics((prev) => ({
           ...prev,
           totalSent: prev.totalSent + 1,
           successRate: ((prev.totalSent + 1) / (prev.totalSent + prev.totalFailed + 1)) * 100,
         }))
 
-        // Clear form
         setEmail("")
         setSubject("")
         setBody("")
+        setSubjectCharCount(0)
+        setBodyCharCount(0)
 
         toast.success("Email sent successfully!", {
           duration: 3000,
@@ -223,7 +245,6 @@ export default function EmailDashboard() {
         }
         setEmailStatuses((prev) => [failedStatus, ...prev.slice(0, 19)])
 
-        // Update metrics
         setMetrics((prev) => ({
           ...prev,
           totalFailed: prev.totalFailed + 1,
@@ -312,9 +333,11 @@ export default function EmailDashboard() {
     })
   }
 
+  const isSendDisabled = isLoading || !email || !subject || !body || 
+    subjectCharCount > subjectCharLimit || bodyCharCount > bodyCharLimit
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      {/* Toast Notifications */}
       <Toaster
         toastOptions={{
           className: "dark:bg-gray-800 dark:text-white",
@@ -327,7 +350,6 @@ export default function EmailDashboard() {
       />
 
       <div className="container mx-auto p-6 max-w-7xl">
-        {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -339,7 +361,6 @@ export default function EmailDashboard() {
               </Link>
               <div className="h-6 w-px bg-gray-300 dark:bg-gray-700"></div>
 
-              {/* Dashboard Navigation with Active Highlighting */}
               <div className="flex items-center gap-4">
                 <NavLink
                   href="/"
@@ -398,7 +419,6 @@ export default function EmailDashboard() {
             </div>
           </div>
 
-          {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <Card className="border-l-4 border-l-green-500 animate-fade-in dark:bg-gray-900">
               <CardContent className="p-4">
@@ -492,7 +512,6 @@ export default function EmailDashboard() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Send Email Tab */}
           <TabsContent value="send" className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
@@ -553,35 +572,101 @@ export default function EmailDashboard() {
                         )}
                       </div>
                     </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="subject" className="text-sm font-medium">
-                        Subject Line
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="subject" className="text-sm font-medium">
+                          Subject Line
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          {subjectCharCount > subjectCharLimit && (
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                          )}
+                          <CharacterCounter 
+                            current={subjectCharCount} 
+                            max={subjectCharLimit}
+                            label="Subject line character count"
+                          />
+                        </div>
+                      </div>
                       <Input
                         id="subject"
                         placeholder="Enter your email subject"
                         value={subject}
-                        onChange={(e) => setSubject(e.target.value)}
+                        onChange={(e) => {
+                          setSubject(e.target.value)
+                          setSubjectCharCount(e.target.value.length)
+                        }}
                         className="h-11"
+                        maxLength={subjectCharLimit}
                       />
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Recommended: 6-10 words for better open rates
+                      </p>
                     </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="body" className="text-sm font-medium">
-                        Message Body
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="body" className="text-sm font-medium">
+                          Message Body
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          {bodyCharCount > bodyCharLimit && (
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                          )}
+                          <CharacterCounter 
+                            current={bodyCharCount} 
+                            max={bodyCharLimit}
+                            label="Message body character count"
+                          />
+                        </div>
+                      </div>
                       <Textarea
                         id="body"
                         placeholder="Write your email message here..."
                         value={body}
-                        onChange={(e) => setBody(e.target.value)}
+                        onChange={(e) => {
+                          setBody(e.target.value)
+                          setBodyCharCount(e.target.value.length)
+                        }}
                         rows={6}
                         className="resize-none dark:bg-gray-800"
+                        maxLength={bodyCharLimit}
                       />
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Use paragraphs and bullet points for better readability
+                      </p>
                     </div>
+
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                            Character Limit Summary
+                          </p>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs text-blue-700 dark:text-blue-400">Subject</p>
+                              <p className={`text-sm font-medium ${subjectCharCount > subjectCharLimit ? 'text-red-600' : 'text-blue-900 dark:text-blue-300'}`}>
+                                {subjectCharCount} / {subjectCharLimit}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-blue-700 dark:text-blue-400">Body</p>
+                              <p className={`text-sm font-medium ${bodyCharCount > bodyCharLimit ? 'text-red-600' : 'text-blue-900 dark:text-blue-300'}`}>
+                                {bodyCharCount} / {bodyCharLimit}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     <Button
                       onClick={handleSendEmail}
-                      disabled={isLoading || !email || !subject || !body}
-                      className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200"
+                      disabled={isSendDisabled}
+                      className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >
                       {isLoading ? (
                         <>
@@ -599,7 +684,7 @@ export default function EmailDashboard() {
                 </Card>
               </div>
 
-              <div>
+              <div className="space-y-6">
                 <Card className="shadow-lg dark:bg-gray-900">
                   <CardHeader>
                     <CardTitle className="text-lg">Rate Limiting</CardTitle>
@@ -621,11 +706,44 @@ export default function EmailDashboard() {
                     </Alert>
                   </CardContent>
                 </Card>
+
+                <Card className="shadow-lg dark:bg-gray-900">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Character Guidelines</CardTitle>
+                    <CardDescription>Best practices for email composition</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">Subject Line</span>
+                          <Badge variant="outline" className="text-xs">
+                            Max {subjectCharLimit}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Keep under 60 characters for mobile display. Use action-oriented language.
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">Message Body</span>
+                          <Badge variant="outline" className="text-xs">
+                            Max {bodyCharLimit}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Longer emails may be truncated by some email clients. Be concise and clear.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </TabsContent>
 
-          {/* Monitor Tab - UPDATED WITH COPY BUTTONS */}
           <TabsContent value="monitor" className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="shadow-lg dark:bg-gray-900">
@@ -666,7 +784,6 @@ export default function EmailDashboard() {
                                 {status.attempts} attempt{status.attempts !== 1 ? "s" : ""}
                               </span>
 
-                              {/* Copy Button for Task ID */}
                               <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
                                 <CopyButton
                                   text={status.id}
@@ -677,6 +794,11 @@ export default function EmailDashboard() {
 
                             <div className="flex items-center gap-2 mb-1">
                               <p className="text-sm font-medium truncate flex-1">{status.subject}</p>
+                              {status.subject && (
+                                <span className="text-xs text-gray-500">
+                                  {status.subject.length} chars
+                                </span>
+                              )}
                             </div>
 
                             <div className="flex items-center justify-between mb-1">
@@ -763,7 +885,6 @@ export default function EmailDashboard() {
             </div>
           </TabsContent>
 
-          {/* Providers Tab */}
           <TabsContent value="providers" className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {providers.map((provider, index) => (
@@ -828,7 +949,6 @@ export default function EmailDashboard() {
             </div>
           </TabsContent>
 
-          {/* Logs Tab - UPDATED WITH COPY BUTTONS */}
           <TabsContent value="logs" className="space-y-6 animate-fade-in">
             <Card className="shadow-lg dark:bg-gray-900">
               <CardHeader>
@@ -903,7 +1023,6 @@ export default function EmailDashboard() {
           </TabsContent>
         </Tabs>
 
-        {/* Features Overview */}
         <Card className="mt-8 shadow-lg animate-fade-in delay-500 dark:bg-gray-900">
           <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
             <CardTitle className="flex items-center gap-2">
