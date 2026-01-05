@@ -84,6 +84,7 @@ The service follows **SOLID principles** and implements a **clean architecture**
 \`\`\`
 
 EmailService (Main Orchestrator)
+
 ├── 📦 Providers (Strategy Pattern)
 
 │   ├── 🔹 ResendProvider (Primary)
