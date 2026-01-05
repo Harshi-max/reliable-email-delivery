@@ -31,13 +31,14 @@ import {
   Palette,
   Copy,
   AlertCircle,
-  Info,
 } from "lucide-react"
 import Link from "next/link"
 import ScrollToTop from "@/components/ui/scroll-to-top"
 import NavLink from "@/components/ui/nav-link"
 import CopyButton from "@/components/ui/copy-button"
 import { CharacterCounter } from "@/components/ui/character-counter"
+import { LoadingButtonEnhanced } from "@/components/ui/loading-button-enhanced"
+import { usePreventDoubleClick } from "@/hooks/use-prevent-double-click"
 import toast, { Toaster } from "react-hot-toast"
 
 interface EmailStatus {
@@ -72,7 +73,6 @@ export default function EmailDashboard() {
   const [email, setEmail] = useState("")
   const [subject, setSubject] = useState("")
   const [body, setBody] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
   const [emailStatuses, setEmailStatuses] = useState<EmailStatus[]>([
     {
       id: "task_001",
@@ -163,34 +163,24 @@ export default function EmailDashboard() {
     return () => clearInterval(interval)
   }, [])
 
-  const handleSendEmail = async () => {
-    if (!email || !subject || !body) {
-      toast.error("Please fill all fields", {
-        duration: 3000,
-        position: "bottom-right",
-      })
-      return
-    }
-    
-    if (subjectCharCount > subjectCharLimit) {
-      toast.error(`Subject exceeds ${subjectCharLimit} characters`, {
-        duration: 3000,
-        position: "bottom-right",
-      })
-      return
-    }
-    
-    if (bodyCharCount > bodyCharLimit) {
-      toast.error(`Body exceeds ${bodyCharLimit} characters`, {
-        duration: 3000,
-        position: "bottom-right",
-      })
-      return
-    }
+  const { isLoading: sendLoading, handleClick: handleSendEmail } = usePreventDoubleClick({
+    action: async () => {
+      // Validation
+      if (!email || !subject || !body) {
+        throw new Error("Please fill all fields")
+      }
+      
+      if (subjectCharCount > subjectCharLimit) {
+        throw new Error(`Subject exceeds ${subjectCharLimit} characters`)
+      }
+      
+      if (bodyCharCount > bodyCharLimit) {
+        throw new Error(`Body exceeds ${bodyCharLimit} characters`)
+      }
 
-    setIsLoading(true)
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500))
 
-    try {
       const response = await fetch("/api/email/send", {
         method: "POST",
         headers: {
@@ -205,67 +195,42 @@ export default function EmailDashboard() {
 
       const result = await response.json()
 
-      if (response.ok) {
-        const newStatus: EmailStatus = {
-          id: result.id,
-          status: "sent",
-          provider: result.provider,
-          attempts: result.attempts,
-          timestamp: new Date().toISOString(),
-          to: email,
-          subject: subject,
-        }
-        setEmailStatuses((prev) => [newStatus, ...prev.slice(0, 19)])
-
-        setMetrics((prev) => ({
-          ...prev,
-          totalSent: prev.totalSent + 1,
-          successRate: ((prev.totalSent + 1) / (prev.totalSent + prev.totalFailed + 1)) * 100,
-        }))
-
-        setEmail("")
-        setSubject("")
-        setBody("")
-        setSubjectCharCount(0)
-        setBodyCharCount(0)
-
-        toast.success("Email sent successfully!", {
-          duration: 3000,
-          position: "bottom-right",
-        })
-      } else {
-        const failedStatus: EmailStatus = {
-          id: result.id || Date.now().toString(),
-          status: "failed",
-          attempts: result.attempts || 1,
-          lastError: result.error,
-          timestamp: new Date().toISOString(),
-          to: email,
-          subject: subject,
-        }
-        setEmailStatuses((prev) => [failedStatus, ...prev.slice(0, 19)])
-
-        setMetrics((prev) => ({
-          ...prev,
-          totalFailed: prev.totalFailed + 1,
-          successRate: (prev.totalSent / (prev.totalSent + prev.totalFailed + 1)) * 100,
-        }))
-
-        toast.error(`Failed to send email: ${result.error}`, {
-          duration: 4000,
-          position: "bottom-right",
-        })
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to send email")
       }
-    } catch (error) {
-      console.error("Failed to send email:", error)
-      toast.error("Network error. Please try again.", {
-        duration: 4000,
-        position: "bottom-right",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
+
+      const newStatus: EmailStatus = {
+        id: result.id || `task_${Date.now()}`,
+        status: "sent",
+        provider: result.provider || "Resend (Primary)",
+        attempts: result.attempts || 1,
+        timestamp: new Date().toISOString(),
+        to: email,
+        subject: subject,
+      }
+      setEmailStatuses((prev) => [newStatus, ...prev.slice(0, 19)])
+
+      setMetrics((prev) => ({
+        ...prev,
+        totalSent: prev.totalSent + 1,
+        successRate: ((prev.totalSent + 1) / (prev.totalSent + prev.totalFailed + 1)) * 100,
+      }))
+
+      // Clear form
+      setEmail("")
+      setSubject("")
+      setBody("")
+      setSubjectCharCount(0)
+      setBodyCharCount(0)
+
+      return result
+    },
+    successMessage: "Email sent successfully!",
+    errorMessage: "Failed to send email",
+    disabled: !email || !subject || !body || 
+      subjectCharCount > subjectCharLimit || 
+      bodyCharCount > bodyCharLimit
+  })
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -333,7 +298,7 @@ export default function EmailDashboard() {
     })
   }
 
-  const isSendDisabled = isLoading || !email || !subject || !body || 
+  const isSendDisabled = !email || !subject || !body || 
     subjectCharCount > subjectCharLimit || bodyCharCount > bodyCharLimit
 
   return (
@@ -559,6 +524,7 @@ export default function EmailDashboard() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           className="h-11 flex-1"
+                          disabled={sendLoading}
                         />
                         {email && (
                           <Button
@@ -566,6 +532,7 @@ export default function EmailDashboard() {
                             size="icon"
                             onClick={() => handleCopyEmail(email)}
                             className="h-11 w-11"
+                            disabled={sendLoading}
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
@@ -599,6 +566,7 @@ export default function EmailDashboard() {
                         }}
                         className="h-11"
                         maxLength={subjectCharLimit}
+                        disabled={sendLoading}
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         Recommended: 6-10 words for better open rates
@@ -632,6 +600,7 @@ export default function EmailDashboard() {
                         rows={6}
                         className="resize-none dark:bg-gray-800"
                         maxLength={bodyCharLimit}
+                        disabled={sendLoading}
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         Use paragraphs and bullet points for better readability
@@ -640,7 +609,7 @@ export default function EmailDashboard() {
 
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                       <div className="flex items-start gap-3">
-                        <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                        <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
                         <div className="space-y-2">
                           <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
                             Character Limit Summary
@@ -663,23 +632,37 @@ export default function EmailDashboard() {
                       </div>
                     </div>
 
-                    <Button
+                    <LoadingButtonEnhanced
                       onClick={handleSendEmail}
+                      status={sendLoading ? "loading" : "idle"}
+                      loadingText="Sending Email..."
+                      successText="Email Sent!"
+                      errorText="Failed to Send"
                       disabled={isSendDisabled}
                       className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      autoReset={true}
+                      resetDelay={2000}
+                      showStatusIcon={true}
                     >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Sending Email...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="mr-2 h-4 w-4" />
-                          Send Email
-                        </>
-                      )}
-                    </Button>
+                      <Send className="mr-2 h-4 w-4" />
+                      Send Email
+                    </LoadingButtonEnhanced>
+
+                    {sendLoading && (
+                      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
+                          <div>
+                            <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                              Sending in progress...
+                            </p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400">
+                              Please don't close this window
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>

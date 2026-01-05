@@ -30,6 +30,8 @@ import Link from "next/link"
 import toast, { Toaster } from "react-hot-toast"
 import CopyButton from "@/components/ui/copy-button"
 import { CharacterCounter } from "@/components/ui/character-counter"
+import { LoadingButtonEnhanced } from "@/components/ui/loading-button-enhanced"
+import { usePreventDoubleClick } from "@/hooks/use-prevent-double-click"
 
 interface EmailComponent {
   id: string
@@ -63,12 +65,91 @@ export default function EmailBuilderPage() {
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop")
   const [emailSubject, setEmailSubject] = useState("Your Beautiful Email Template")
   const [emailRecipient, setEmailRecipient] = useState("")
-  const [isSending, setIsSending] = useState(false)
   
   // Character counter states
   const [subjectCharCount, setSubjectCharCount] = useState(emailSubject.length)
   const [subjectCharLimit] = useState(100)
   const [componentCharCounts, setComponentCharCounts] = useState<{[key: string]: number}>({})
+
+  // Use button status hook for sending
+  const { isLoading: isSendLoading, handleClick: handleSendEmail } = usePreventDoubleClick({
+    action: async () => {
+      if (!emailRecipient) {
+        throw new Error("Please enter recipient email")
+      }
+      
+      if (subjectCharCount > subjectCharLimit) {
+        throw new Error(`Subject exceeds ${subjectCharLimit} characters`)
+      }
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      const componentHTML = components.map(comp => {
+        const styles = Object.entries(comp.styles)
+          .filter(([key]) => !key.includes("Url") && key !== "src" && key !== "alt" && key !== "href")
+          .map(([key, value]) => `${key.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${value}`)
+          .join('; ')
+
+        switch (comp.type) {
+          case "text":
+            return `<div style="${styles}">${comp.content}</div>`
+          case "image":
+            return `<img src="${comp.styles.src || 'https://via.placeholder.com/400x200'}" alt="${comp.styles.alt || 'Image'}" style="${styles}" />`
+          case "button":
+            return `<a href="${comp.styles.href || '#'}" style="display: inline-block; text-decoration: none; ${styles}">${comp.content}</a>`
+          case "social":
+            return `<div style="${styles}"><div style="text-align: center; padding: 20px;"><div style="margin-bottom: 16px;"><a href="${comp.styles.facebookUrl || 'https://facebook.com'}" style="display: inline-block; width: 48px; height: 48px; background-color: #1877f2; border-radius: 50%; text-align: center; line-height: 48px; color: white; text-decoration: none; margin: 0 8px; font-weight: bold; font-size: 18px;">f</a><a href="${comp.styles.twitterUrl || 'https://twitter.com'}" style="display: inline-block; width: 48px; height: 48px; background-color: #1da1f2; border-radius: 50%; text-align: center; line-height: 48px; color: white; text-decoration: none; margin: 0 8px; font-weight: bold; font-size: 18px;">𝕏</a><a href="${comp.styles.instagramUrl || 'https://instagram.com'}" style="display: inline-block; width: 48px; height: 48px; background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); border-radius: 50%; text-align: center; line-height: 48px; color: white; text-decoration: none; margin: 0 8px; font-weight: bold; font-size: 18px;">📷</a><a href="${comp.styles.linkedinUrl || 'https://linkedin.com'}" style="display: inline-block; width: 48px; height: 48px; background-color: #0077b5; border-radius: 50%; text-align: center; line-height: 48px; color: white; text-decoration: none; margin: 0 8px; font-weight: bold; font-size: 14px;">in</a><a href="${comp.styles.youtubeUrl || 'https://youtube.com'}" style="display: inline-block; width: 48px; height: 48px; background-color: #ff0000; border-radius: 50%; text-align: center; line-height: 48px; color: white; text-decoration: none; margin: 0 8px; font-weight: bold; font-size: 18px;">▶</a></div><p style="margin: 0; font-size: ${comp.styles.fontSize || '16px'}; color: ${comp.styles.color || '#374151'}; font-weight: 500;">${comp.content}</p></div></div>`
+          case "divider":
+            return `<hr style="${styles}" />`
+          default:
+            return ""
+        }
+      }).join("")
+
+      const fullHTML = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>${emailSubject}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
+        .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        ${componentHTML}
+    </div>
+</body>
+</html>`
+
+      const response = await fetch("/api/email/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: emailRecipient,
+          subject: emailSubject,
+          body: fullHTML,
+          html: fullHTML
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to send email")
+      }
+
+      // Clear recipient after successful send
+      setEmailRecipient("")
+      
+      return response.json()
+    },
+    successMessage: "✅ Email sent successfully!",
+    errorMessage: "❌ Failed to send email",
+    disabled: !emailRecipient || subjectCharCount > subjectCharLimit
+  })
 
   // Initialize component character counts
   useEffect(() => {
@@ -205,99 +286,6 @@ export default function EmailBuilderPage() {
     })
   }
 
-  const handleSendEmail = async () => {
-    if (!emailRecipient) {
-      toast.error("Please enter recipient email", {
-        duration: 3000,
-        position: "bottom-right",
-      })
-      return
-    }
-    
-    if (subjectCharCount > subjectCharLimit) {
-      toast.error(`Subject exceeds ${subjectCharLimit} characters`, {
-        duration: 3000,
-        position: "bottom-right",
-      })
-      return
-    }
-    
-    setIsSending(true)
-    try {
-      const componentHTML = components.map(comp => {
-        const styles = Object.entries(comp.styles)
-          .filter(([key]) => !key.includes("Url") && key !== "src" && key !== "alt" && key !== "href")
-          .map(([key, value]) => `${key.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${value}`)
-          .join('; ')
-
-        switch (comp.type) {
-          case "text":
-            return `<div style="${styles}">${comp.content}</div>`
-          case "image":
-            return `<img src="${comp.styles.src || 'https://via.placeholder.com/400x200'}" alt="${comp.styles.alt || 'Image'}" style="${styles}" />`
-          case "button":
-            return `<a href="${comp.styles.href || '#'}" style="display: inline-block; text-decoration: none; ${styles}">${comp.content}</a>`
-          case "social":
-            return `<div style="${styles}"><div style="text-align: center; padding: 20px;"><div style="margin-bottom: 16px;"><a href="${comp.styles.facebookUrl || 'https://facebook.com'}" style="display: inline-block; width: 48px; height: 48px; background-color: #1877f2; border-radius: 50%; text-align: center; line-height: 48px; color: white; text-decoration: none; margin: 0 8px; font-weight: bold; font-size: 18px;">f</a><a href="${comp.styles.twitterUrl || 'https://twitter.com'}" style="display: inline-block; width: 48px; height: 48px; background-color: #1da1f2; border-radius: 50%; text-align: center; line-height: 48px; color: white; text-decoration: none; margin: 0 8px; font-weight: bold; font-size: 18px;">𝕏</a><a href="${comp.styles.instagramUrl || 'https://instagram.com'}" style="display: inline-block; width: 48px; height: 48px; background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); border-radius: 50%; text-align: center; line-height: 48px; color: white; text-decoration: none; margin: 0 8px; font-weight: bold; font-size: 18px;">📷</a><a href="${comp.styles.linkedinUrl || 'https://linkedin.com'}" style="display: inline-block; width: 48px; height: 48px; background-color: #0077b5; border-radius: 50%; text-align: center; line-height: 48px; color: white; text-decoration: none; margin: 0 8px; font-weight: bold; font-size: 14px;">in</a><a href="${comp.styles.youtubeUrl || 'https://youtube.com'}" style="display: inline-block; width: 48px; height: 48px; background-color: #ff0000; border-radius: 50%; text-align: center; line-height: 48px; color: white; text-decoration: none; margin: 0 8px; font-weight: bold; font-size: 18px;">▶</a></div><p style="margin: 0; font-size: ${comp.styles.fontSize || '16px'}; color: ${comp.styles.color || '#374151'}; font-weight: 500;">${comp.content}</p></div></div>`
-          case "divider":
-            return `<hr style="${styles}" />`
-          default:
-            return ""
-        }
-      }).join("")
-
-      const fullHTML = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>${emailSubject}</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
-        .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    </style>
-</head>
-<body>
-    <div class="email-container">
-        ${componentHTML}
-    </div>
-</body>
-</html>`
-
-      const response = await fetch("/api/email/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: emailRecipient,
-          subject: emailSubject,
-          body: fullHTML,
-          html: fullHTML
-        })
-      })
-
-      if (response.ok) {
-        toast.success("✅ Email sent successfully!", {
-          duration: 4000,
-          position: "bottom-right",
-        })
-        setEmailRecipient("")
-      } else {
-        const error = await response.json()
-        toast.error(`❌ Failed: ${error.error}`, {
-          duration: 4000,
-          position: "bottom-right",
-        })
-      }
-    } catch (error) {
-      toast.error("❌ Network error", {
-        duration: 4000,
-        position: "bottom-right",
-      })
-    } finally {
-      setIsSending(false)
-    }
-  }
-
   const selectedComponentData = selectedComponent 
     ? components.find(c => c.id === selectedComponent) 
     : null
@@ -362,7 +350,7 @@ export default function EmailBuilderPage() {
   const totalComponentsCharCount = Object.values(componentCharCounts).reduce((a, b) => a + b, 0)
   const totalComponentsCharLimit = 5000
 
-  const isSendDisabled = !emailRecipient || isSending || subjectCharCount > subjectCharLimit
+  const isSendDisabled = !emailRecipient || subjectCharCount > subjectCharLimit
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -398,6 +386,7 @@ export default function EmailBuilderPage() {
                   size="sm"
                   onClick={() => setPreviewMode("desktop")}
                   className="dark:hover:bg-gray-600"
+                  disabled={isSendLoading}
                 >
                   <Monitor className="h-4 w-4" />
                 </Button>
@@ -406,6 +395,7 @@ export default function EmailBuilderPage() {
                   size="sm"
                   onClick={() => setPreviewMode("mobile")}
                   className="dark:hover:bg-gray-600"
+                  disabled={isSendLoading}
                 >
                   <Smartphone className="h-4 w-4" />
                 </Button>
@@ -418,6 +408,7 @@ export default function EmailBuilderPage() {
                     value={emailRecipient}
                     onChange={(e) => setEmailRecipient(e.target.value)}
                     className="w-40 dark:bg-gray-700 dark:border-gray-600"
+                    disabled={isSendLoading}
                   />
                   {emailRecipient && (
                     <Button
@@ -425,6 +416,7 @@ export default function EmailBuilderPage() {
                       size="sm"
                       className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
                       onClick={() => handleCopyEmail(emailRecipient)}
+                      disabled={isSendLoading}
                     >
                       <Copy className="h-3 w-3" />
                     </Button>
@@ -441,6 +433,7 @@ export default function EmailBuilderPage() {
                     }}
                     className="w-48 dark:bg-gray-700 dark:border-gray-600"
                     maxLength={subjectCharLimit}
+                    disabled={isSendLoading}
                   />
                   <div className="absolute -bottom-6 left-0 right-0">
                     <CharacterCounter 
@@ -457,27 +450,26 @@ export default function EmailBuilderPage() {
                   onClick={handleCopyHTML}
                   variant="outline"
                   className="dark:border-gray-600 dark:hover:bg-gray-700"
+                  disabled={isSendLoading}
                 >
                   <Copy className="h-4 w-4 mr-2" />
                   Copy HTML
                 </Button>
-                <Button
+                <LoadingButtonEnhanced
                   onClick={handleSendEmail}
+                  status={isSendLoading ? "loading" : "idle"}
+                  loadingText="Sending..."
+                  successText="Sent!"
+                  errorText="Failed"
                   disabled={isSendDisabled}
-                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
+                  autoReset={true}
+                  resetDelay={2000}
+                  showStatusIcon={true}
                 >
-                  {isSending ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4 mr-2" />
-                      Send
-                    </>
-                  )}
-                </Button>
+                  <Send className="h-4 w-4 mr-2" />
+                  Send
+                </LoadingButtonEnhanced>
               </div>
             </div>
           </div>
@@ -663,6 +655,7 @@ export default function EmailBuilderPage() {
                             styles: { backgroundColor: "#007bff", color: "#ffffff", padding: "14px 32px", borderRadius: "6px", textAlign: "center", fontSize: "16px", fontWeight: "bold", href: "#", margin: "0 auto", display: "block", width: "fit-content" }
                           }
                         ])}
+                        disabled={isSendLoading}
                       >
                         <div className="text-left">
                           <p className="font-medium">Welcome Email</p>
@@ -697,8 +690,9 @@ export default function EmailBuilderPage() {
                             type: "social",
                             content: "Follow us for more updates",
                             styles: { padding: "20px", textAlign: "center", fontSize: "14px", color: "#374151" }
-                          }
+                        }
                         ])}
+                        disabled={isSendLoading}
                       >
                         <div className="text-left">
                           <p className="font-medium">Newsletter</p>
@@ -747,6 +741,7 @@ export default function EmailBuilderPage() {
                               className="mt-1 dark:bg-gray-800 dark:border-gray-600"
                               rows={3}
                               maxLength={1000}
+                              disabled={isSendLoading}
                             />
                           </div>
                         )}
@@ -760,6 +755,7 @@ export default function EmailBuilderPage() {
                               onChange={(e) => updateComponent(selectedComponentData.id, { content: e.target.value })}
                               className="mt-1 dark:bg-gray-800 dark:border-gray-600"
                               rows={3}
+                              disabled={isSendLoading}
                             />
                           </div>
                         )}
@@ -772,10 +768,11 @@ export default function EmailBuilderPage() {
                                 id="fontSize"
                                 type="number"
                                 value={parseInt(selectedComponentData.styles.fontSize || "16")}
-                                onChange={(e) => updateComponent(selectedComponentData.id, {
+                              onChange={(e) => updateComponent(selectedComponentData.id, {
                                   styles: { ...selectedComponentData.styles, fontSize: `${e.target.value}px` }
                                 })}
                                 className="mt-1 dark:bg-gray-800 dark:border-gray-600"
+                                disabled={isSendLoading}
                               />
                             </div>
                             <div>
@@ -788,6 +785,7 @@ export default function EmailBuilderPage() {
                                   styles: { ...selectedComponentData.styles, color: e.target.value }
                                 })}
                                 className="mt-1 h-10 w-full p-1 dark:bg-gray-800 dark:border-gray-600"
+                                disabled={isSendLoading}
                               />
                             </div>
                           </>
@@ -805,6 +803,7 @@ export default function EmailBuilderPage() {
                                   styles: { ...selectedComponentData.styles, backgroundColor: e.target.value }
                                 })}
                                 className="mt-1 h-10 w-full p-1 dark:bg-gray-800 dark:border-gray-600"
+                                disabled={isSendLoading}
                               />
                             </div>
                             <div>
@@ -816,6 +815,7 @@ export default function EmailBuilderPage() {
                                   styles: { ...selectedComponentData.styles, href: e.target.value }
                                 })}
                                 className="mt-1 dark:bg-gray-800 dark:border-gray-600"
+                                disabled={isSendLoading}
                               />
                             </div>
                           </>
@@ -827,6 +827,7 @@ export default function EmailBuilderPage() {
                             size="sm"
                             onClick={() => duplicateComponent(selectedComponentData.id)}
                             className="flex-1 dark:border-gray-600 dark:hover:bg-gray-700"
+                            disabled={isSendLoading}
                           >
                             <Copy className="h-4 w-4 mr-2" />
                             Duplicate
@@ -836,6 +837,7 @@ export default function EmailBuilderPage() {
                             size="sm"
                             onClick={() => deleteComponent(selectedComponentData.id)}
                             className="flex-1"
+                            disabled={isSendLoading}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete
@@ -947,6 +949,7 @@ export default function EmailBuilderPage() {
                                       e.stopPropagation()
                                       duplicateComponent(component.id)
                                     }}
+                                    disabled={isSendLoading}
                                   >
                                     <Copy className="h-3 w-3" />
                                   </Button>
@@ -958,6 +961,7 @@ export default function EmailBuilderPage() {
                                       e.stopPropagation()
                                       deleteComponent(component.id)
                                     }}
+                                    disabled={isSendLoading}
                                   >
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
