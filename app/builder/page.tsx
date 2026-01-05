@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   ArrowLeft,
   Send,
@@ -25,12 +26,14 @@ import {
   Palette,
   Layers,
   AlertCircle,
+  CheckCircle,
+  XCircle,
 } from "lucide-react"
 import Link from "next/link"
 import toast, { Toaster } from "react-hot-toast"
-import CopyButton from "@/components/ui/copy-button"
 import { CharacterCounter } from "@/components/ui/character-counter"
 import { LoadingButtonEnhanced } from "@/components/ui/loading-button-enhanced"
+import { EmailInput } from "@/components/ui/email-input"
 import { usePreventDoubleClick } from "@/hooks/use-prevent-double-click"
 
 interface EmailComponent {
@@ -64,24 +67,56 @@ export default function EmailBuilderPage() {
   const [selectedComponent, setSelectedComponent] = useState<string | null>(null)
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop")
   const [emailSubject, setEmailSubject] = useState("Your Beautiful Email Template")
+  
+  // Email validation state
   const [emailRecipient, setEmailRecipient] = useState("")
+  const [isEmailValid, setIsEmailValid] = useState(false)
+  const [emailValidationTouched, setEmailValidationTouched] = useState(false)
   
   // Character counter states
   const [subjectCharCount, setSubjectCharCount] = useState(emailSubject.length)
   const [subjectCharLimit] = useState(100)
   const [componentCharCounts, setComponentCharCounts] = useState<{[key: string]: number}>({})
 
+  // Initialize character counts for existing components
+  useEffect(() => {
+    const counts: {[key: string]: number} = {}
+    components.forEach(comp => {
+      if (comp.type === "text") {
+        counts[comp.id] = comp.content.length
+      }
+    })
+    setComponentCharCounts(counts)
+  }, [components])
+
   // Use button status hook for sending
-  const { isLoading: isSendLoading, handleClick: handleSendEmail } = usePreventDoubleClick({
+  const { isLoading: sendIsLoading, handleClick: handleSendEmail } = usePreventDoubleClick({
     action: async () => {
       if (!emailRecipient) {
         throw new Error("Please enter recipient email")
+      }
+      
+      if (!isEmailValid) {
+        setEmailValidationTouched(true)
+        throw new Error("Please enter a valid email address")
       }
       
       if (subjectCharCount > subjectCharLimit) {
         throw new Error(`Subject exceeds ${subjectCharLimit} characters`)
       }
       
+      // Validate component content
+      const invalidComponents = components.filter(comp => {
+        if (comp.type === "text" && !comp.content.trim()) {
+          return true
+        }
+        return false
+      })
+      
+      if (invalidComponents.length > 0) {
+        throw new Error("Please fill all text components")
+      }
+
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500))
       
@@ -143,916 +178,704 @@ export default function EmailBuilderPage() {
 
       // Clear recipient after successful send
       setEmailRecipient("")
+      setIsEmailValid(false)
+      setEmailValidationTouched(false)
       
       return response.json()
     },
     successMessage: "✅ Email sent successfully!",
     errorMessage: "❌ Failed to send email",
-    disabled: !emailRecipient || subjectCharCount > subjectCharLimit
   })
-
-  // Initialize component character counts
-  useEffect(() => {
-    const initialCounts: {[key: string]: number} = {}
-    components.forEach(comp => {
-      initialCounts[comp.id] = comp.content.length
-    })
-    setComponentCharCounts(initialCounts)
-  }, [])
 
   const handleDragEnd = useCallback((result: any) => {
     if (!result.destination) return
-
-    const { source, destination, draggableId } = result
-
-    if (source.droppableId === "components" && destination.droppableId === "canvas") {
-      const componentType = draggableId as EmailComponent["type"]
-      const newComponent: EmailComponent = {
-        id: `${componentType}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        type: componentType,
-        content: getDefaultContent(componentType),
-        styles: getDefaultStyles(componentType)
-      }
-
-      const newComponents = [...components]
-      newComponents.splice(destination.index, 0, newComponent)
-      setComponents(newComponents)
-      setSelectedComponent(newComponent.id)
-      
-      // Initialize character count for new component
-      setComponentCharCounts(prev => ({
-        ...prev,
-        [newComponent.id]: newComponent.content.length
-      }))
-      
-      toast.success(`Added ${componentType} component`, {
-        duration: 2000,
-        position: "bottom-right",
-      })
-    } 
-    else if (source.droppableId === "canvas" && destination.droppableId === "canvas") {
-      if (source.index === destination.index) return
-      
-      const newComponents = Array.from(components)
-      const [reorderedItem] = newComponents.splice(source.index, 1)
-      newComponents.splice(destination.index, 0, reorderedItem)
-      setComponents(newComponents)
-    }
+    const items = Array.from(components)
+    const [reorderedItem] = items.splice(result.source.index, 1)
+    items.splice(result.destination.index, 0, reorderedItem)
+    setComponents(items)
   }, [components])
 
-  const getDefaultContent = (type: EmailComponent["type"]): string => {
-    switch (type) {
-      case "text": return "Your text content here..."
-      case "image": return ""
-      case "button": return "Click Me"
-      case "social": return "Follow us on social media"
-      case "divider": return ""
-      default: return ""
+  const addComponent = useCallback((type: EmailComponent["type"]) => {
+    const id = `${type}-${Date.now()}`
+    const defaultStyles = {
+      text: { fontSize: "16px", color: "#333333", padding: "10px", lineHeight: "1.5" },
+      image: { width: "100%", height: "200px", padding: "10px", src: "https://via.placeholder.com/600x200", alt: "Image" },
+      button: { backgroundColor: "#007bff", color: "#ffffff", padding: "12px 24px", borderRadius: "6px", textAlign: "center", fontSize: "16px", fontWeight: "bold", href: "#" },
+      social: { padding: "20px", fontSize: "16px", color: "#374151", facebookUrl: "https://facebook.com", twitterUrl: "https://twitter.com", instagramUrl: "https://instagram.com", linkedinUrl: "https://linkedin.com", youtubeUrl: "https://youtube.com" },
+      divider: { border: "1px solid #e5e7eb", margin: "20px 0", width: "100%" }
     }
-  }
-
-  const getDefaultStyles = (type: EmailComponent["type"]) => {
-    switch (type) {
-      case "text":
-        return { fontSize: "16px", color: "#333333", padding: "16px", textAlign: "left" }
-      case "image":
-        return { width: "100%", height: "200px", padding: "10px", src: "https://via.placeholder.com/600x200", alt: "Image" }
-      case "button":
-        return { backgroundColor: "#007bff", color: "#ffffff", padding: "12px 24px", borderRadius: "6px", textAlign: "center", fontSize: "16px", fontWeight: "bold", href: "#" }
-      case "social":
-        return { padding: "20px", textAlign: "center", fontSize: "16px", color: "#374151", facebookUrl: "https://facebook.com", twitterUrl: "https://twitter.com", instagramUrl: "https://instagram.com", linkedinUrl: "https://linkedin.com", youtubeUrl: "https://youtube.com" }
-      case "divider":
-        return { height: "2px", backgroundColor: "#e0e0e0", padding: "10px 0" }
-      default:
-        return {}
+    
+    const newComponent: EmailComponent = {
+      id,
+      type,
+      content: type === "text" ? "New text content" : 
+               type === "button" ? "Click Here" : 
+               type === "social" ? "Follow us on social media" : "",
+      styles: defaultStyles[type]
     }
-  }
+    
+    setComponents([...components, newComponent])
+    setSelectedComponent(id)
+    
+    if (type === "text") {
+      setComponentCharCounts(prev => ({
+        ...prev,
+        [id]: newComponent.content.length
+      }))
+    }
+    
+    toast.success(`Added ${type} component`, { icon: "➕" })
+  }, [components])
 
-  const updateComponent = (id: string, updates: Partial<EmailComponent>) => {
-    setComponents(prev => prev.map(comp => 
+  const updateComponent = useCallback((id: string, updates: Partial<EmailComponent>) => {
+    setComponents(components.map(comp => 
       comp.id === id ? { ...comp, ...updates } : comp
     ))
     
-    // Update character count if content changed
     if (updates.content !== undefined) {
       setComponentCharCounts(prev => ({
         ...prev,
         [id]: updates.content?.length || 0
       }))
     }
-  }
+  }, [components])
 
-  const deleteComponent = (id: string) => {
-    setComponents(prev => prev.filter(comp => comp.id !== id))
-    setSelectedComponent(null)
-    
-    // Remove character count for deleted component
-    setComponentCharCounts(prev => {
-      const newCounts = { ...prev }
-      delete newCounts[id]
-      return newCounts
-    })
-    
-    toast.success("Component deleted", {
-      duration: 2000,
-      position: "bottom-right",
-    })
-  }
+  const updateComponentStyle = useCallback((id: string, key: string, value: string) => {
+    setComponents(components.map(comp => 
+      comp.id === id ? { ...comp, styles: { ...comp.styles, [key]: value } } : comp
+    ))
+  }, [components])
 
-  const duplicateComponent = (id: string) => {
-    const component = components.find(c => c.id === id)
+  const removeComponent = useCallback((id: string) => {
+    setComponents(components.filter(comp => comp.id !== id))
+    if (selectedComponent === id) {
+      setSelectedComponent(null)
+    }
+    toast.success("Component removed", { icon: "🗑️" })
+  }, [components, selectedComponent])
+
+  const duplicateComponent = useCallback((id: string) => {
+    const component = components.find(comp => comp.id === id)
     if (!component) return
     
-    const newComponent = {
-      ...component,
-      id: `${component.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    }
-    
-    const index = components.findIndex(c => c.id === id)
-    const newComponents = [...components]
-    newComponents.splice(index + 1, 0, newComponent)
-    setComponents(newComponents)
-    setSelectedComponent(newComponent.id)
-    
-    // Set character count for duplicated component
-    setComponentCharCounts(prev => ({
-      ...prev,
-      [newComponent.id]: newComponent.content.length
-    }))
-    
-    toast.success("Component duplicated", {
-      duration: 2000,
-      position: "bottom-right",
-    })
-  }
+    const newId = `${component.type}-${Date.now()}`
+    const duplicated = { ...component, id: newId }
+    setComponents([...components, duplicated])
+    setSelectedComponent(newId)
+    toast.success("Component duplicated", { icon: "📋" })
+  }, [components])
 
-  const selectedComponentData = selectedComponent 
-    ? components.find(c => c.id === selectedComponent) 
-    : null
+  const selectedComponentData = components.find(comp => comp.id === selectedComponent)
 
-  const handleCopyHTML = () => {
-    const componentHTML = components.map(comp => {
-      const styles = Object.entries(comp.styles)
-        .filter(([key]) => !key.includes("Url") && key !== "src" && key !== "alt" && key !== "href")
-        .map(([key, value]) => `${key.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${value}`)
-        .join('; ')
-
-      switch (comp.type) {
-        case "text":
-          return `<div style="${styles}">${comp.content}</div>`
-        case "image":
-          return `<img src="${comp.styles.src || 'https://via.placeholder.com/400x200'}" alt="${comp.styles.alt || 'Image'}" style="${styles}" />`
-        case "button":
-          return `<a href="${comp.styles.href || '#'}" style="display: inline-block; text-decoration: none; ${styles}">${comp.content}</a>`
-        case "social":
-          return `<div style="${styles}">${comp.content}</div>`
-        case "divider":
-          return `<hr style="${styles}" />`
-        default:
-          return ""
-      }
-    }).join("\n")
-
-    navigator.clipboard.writeText(componentHTML)
-    toast.success("HTML copied to clipboard!", {
-      duration: 2000,
-      position: "bottom-right",
-      icon: "📋",
-    })
-  }
-
-  const handleCopyEmail = (email: string) => {
-    navigator.clipboard.writeText(email)
-    toast.success("Email copied to clipboard!", {
-      duration: 2000,
-      position: "bottom-right",
-      icon: "📧",
-    })
-  }
-
-  const loadTemplate = (templateComponents: EmailComponent[]) => {
-    setComponents(templateComponents)
-    setSelectedComponent(null)
-    
-    // Update character counts for template components
-    const newCounts: {[key: string]: number} = {}
-    templateComponents.forEach(comp => {
-      newCounts[comp.id] = comp.content.length
-    })
-    setComponentCharCounts(newCounts)
-    
-    toast.success("Template loaded!", {
-      duration: 2000,
-      position: "bottom-right",
-    })
-  }
-
-  const totalComponentsCharCount = Object.values(componentCharCounts).reduce((a, b) => a + b, 0)
-  const totalComponentsCharLimit = 5000
-
-  const isSendDisabled = !emailRecipient || subjectCharCount > subjectCharLimit
+  const isSendDisabled = !emailRecipient || !isEmailValid || subjectCharCount > subjectCharLimit || 
+    components.some(comp => comp.type === "text" && !comp.content.trim())
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Toaster
         toastOptions={{
           className: "dark:bg-gray-800 dark:text-white",
+          style: {
+            background: "var(--background)",
+            color: "var(--foreground)",
+            border: "1px solid var(--border)",
+          },
         }}
       />
-      
-      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 shadow-sm">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard">
-                <Button variant="ghost" size="sm" className="dark:hover:bg-gray-700">
+
+      <div className="container mx-auto p-4 md:p-6">
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Link href="/">
+                <Button variant="ghost" size="sm" className="hover:bg-white/80 dark:hover:bg-gray-800">
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back
+                  Back to Home
                 </Button>
               </Link>
-              <div className="flex items-center gap-2">
-                <Palette className="h-5 w-5 text-purple-500" />
-                <h1 className="text-xl font-bold dark:text-white">Email Builder</h1>
-                <Badge variant="outline" className="ml-2">
-                  {components.length} components
-                </Badge>
-              </div>
+              
+              <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white animate-pulse">
+                <Layers className="h-3 w-3 mr-1" />
+                Drag & Drop Builder
+              </Badge>
             </div>
             
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                <Button
-                  variant={previewMode === "desktop" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setPreviewMode("desktop")}
-                  className="dark:hover:bg-gray-600"
-                  disabled={isSendLoading}
-                >
-                  <Monitor className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={previewMode === "mobile" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setPreviewMode("mobile")}
-                  className="dark:hover:bg-gray-600"
-                  disabled={isSendLoading}
-                >
-                  <Smartphone className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Input
-                    placeholder="📧 Email"
-                    value={emailRecipient}
-                    onChange={(e) => setEmailRecipient(e.target.value)}
-                    className="w-40 dark:bg-gray-700 dark:border-gray-600"
-                    disabled={isSendLoading}
-                  />
-                  {emailRecipient && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-                      onClick={() => handleCopyEmail(emailRecipient)}
-                      disabled={isSendLoading}
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-                
-                <div className="relative">
-                  <Input
-                    placeholder="📝 Subject"
-                    value={emailSubject}
-                    onChange={(e) => {
-                      setEmailSubject(e.target.value)
-                      setSubjectCharCount(e.target.value.length)
-                    }}
-                    className="w-48 dark:bg-gray-700 dark:border-gray-600"
-                    maxLength={subjectCharLimit}
-                    disabled={isSendLoading}
-                  />
-                  <div className="absolute -bottom-6 left-0 right-0">
-                    <CharacterCounter 
-                      current={subjectCharCount} 
-                      max={subjectCharLimit}
-                      label="Subject line character count"
-                      className="text-xs"
-                      showLimit={false}
-                    />
-                  </div>
-                </div>
-                
-                <Button
-                  onClick={handleCopyHTML}
-                  variant="outline"
-                  className="dark:border-gray-600 dark:hover:bg-gray-700"
-                  disabled={isSendLoading}
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy HTML
-                </Button>
-                <LoadingButtonEnhanced
-                  onClick={handleSendEmail}
-                  status={isSendLoading ? "loading" : "idle"}
-                  loadingText="Sending..."
-                  successText="Sent!"
-                  errorText="Failed"
-                  disabled={isSendDisabled}
-                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
-                  autoReset={true}
-                  resetDelay={2000}
-                  showStatusIcon={true}
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  Send
-                </LoadingButtonEnhanced>
-              </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setPreviewMode("desktop")}
+                className={previewMode === "desktop" ? "bg-blue-100 dark:bg-blue-900" : ""}
+              >
+                <Monitor className="h-4 w-4 mr-2" />
+                Desktop
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setPreviewMode("mobile")}
+                className={previewMode === "mobile" ? "bg-blue-100 dark:bg-blue-900" : ""}
+              >
+                <Smartphone className="h-4 w-4 mr-2" />
+                Mobile
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="flex h-[calc(100vh-80px)]">
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="w-80 bg-white dark:bg-gray-800 border-r dark:border-gray-700 overflow-y-auto">
-            <div className="p-4">
-              <Tabs defaultValue="components" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 dark:bg-gray-700">
-                  <TabsTrigger value="components" className="dark:data-[state=active]:bg-gray-600">
-                    <Layers className="h-4 w-4 mr-2" />
-                    Components
-                  </TabsTrigger>
-                  <TabsTrigger value="templates" className="dark:data-[state=active]:bg-gray-600">
-                    <Palette className="h-4 w-4 mr-2" />
-                    Templates
-                  </TabsTrigger>
-                  <TabsTrigger value="properties" className="dark:data-[state=active]:bg-gray-600">
-                    <Type className="h-4 w-4 mr-2" />
-                    Properties
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="components" className="mt-4">
-                  <Card className="dark:bg-gray-900 dark:border-gray-700">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm">Drag & Drop Components</CardTitle>
-                      <CardDescription className="dark:text-gray-400">
-                        Drag components to the canvas
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Droppable droppableId="components" isDropDisabled={true}>
-                        {(provided) => (
-                          <div
-                            {...provided.droppableProps}
-                            ref={provided.innerRef}
-                            className="space-y-3"
-                          >
-                            {[
-                              { id: "text", icon: <Type className="h-4 w-4" />, label: "Text", desc: "Add text content" },
-                              { id: "image", icon: <Image className="h-4 w-4" />, label: "Image", desc: "Insert images" },
-                              { id: "button", icon: <MousePointerClick className="h-4 w-4" />, label: "Button", desc: "Call-to-action buttons" },
-                              { id: "social", icon: <Users className="h-4 w-4" />, label: "Social", desc: "Social media links" },
-                              { id: "divider", icon: <Minus className="h-4 w-4" />, label: "Divider", desc: "Horizontal lines" },
-                            ].map((item, index) => (
-                              <Draggable key={item.id} draggableId={item.id} index={index}>
-                                {(provided, snapshot) => (
-                                  <div
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                    {...provided.dragHandleProps}
-                                    className={`p-3 border rounded-lg cursor-move transition-all ${
-                                      snapshot.isDragging
-                                        ? "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700"
-                                        : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600"
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded">
-                                        {item.icon}
-                                      </div>
-                                      <div>
-                                        <p className="font-medium text-sm dark:text-white">{item.label}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">{item.desc}</p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </Draggable>
-                            ))}
-                            {provided.placeholder}
-                          </div>
+          <Alert className="mb-6 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/30">
+            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <AlertDescription className="text-green-800 dark:text-green-300">
+              <strong>✅ Email Validation Active:</strong> Invalid email addresses will be blocked. Real-time validation with format checking enabled.
+            </AlertDescription>
+          </Alert>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Sidebar - Components */}
+          <div className="lg:col-span-1">
+            <Card className="shadow-lg dark:bg-gray-900 h-full">
+              <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-t-lg">
+                <CardTitle className="flex items-center gap-2">
+                  <Layers className="h-5 w-5" />
+                  Components
+                </CardTitle>
+                <CardDescription className="text-blue-100">
+                  Drag and drop to build your email
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="h-24 flex flex-col items-center justify-center gap-2 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                    onClick={() => addComponent("text")}
+                  >
+                    <Type className="h-6 w-6 text-blue-500" />
+                    <span className="text-sm font-medium">Text</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-24 flex flex-col items-center justify-center gap-2 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                    onClick={() => addComponent("image")}
+                  >
+                    <Image className="h-6 w-6 text-green-500" />
+                    <span className="text-sm font-medium">Image</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-24 flex flex-col items-center justify-center gap-2 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                    onClick={() => addComponent("button")}
+                  >
+                    <MousePointerClick className="h-6 w-6 text-purple-500" />
+                    <span className="text-sm font-medium">Button</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-24 flex flex-col items-center justify-center gap-2 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                    onClick={() => addComponent("social")}
+                  >
+                    <Users className="h-6 w-6 text-orange-500" />
+                    <span className="text-sm font-medium">Social</span>
+                  </Button>
+                </div>
+
+                <div className="border-t pt-4">
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label htmlFor="subject" className="text-sm font-medium">
+                          Email Subject
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          {subjectCharCount > subjectCharLimit && (
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                          )}
+                          <CharacterCounter 
+                            current={subjectCharCount} 
+                            max={subjectCharLimit}
+                            label="Subject line character count"
+                          />
+                        </div>
+                      </div>
+                      <Input
+                        id="subject"
+                        value={emailSubject}
+                        onChange={(e) => {
+                          setEmailSubject(e.target.value)
+                          setSubjectCharCount(e.target.value.length)
+                        }}
+                        placeholder="Enter email subject"
+                        className="mb-2"
+                        maxLength={subjectCharLimit}
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Recommended: Keep under 50 characters for better open rates
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <EmailInput
+                        label="Recipient Email"
+                        value={emailRecipient}
+                        onChange={(e) => setEmailRecipient(e.target.value)}
+                        showValidation={true}
+                        onValidationChange={(isValid) => {
+                          setIsEmailValid(isValid)
+                          setEmailValidationTouched(true)
+                        }}
+                        className="h-11"
+                        placeholder="recipient@example.com"
+                        onCopy={(e) => {
+                          const target = e.currentTarget as HTMLInputElement
+                          navigator.clipboard.writeText(target.value)
+                          toast.success("Email copied to clipboard!", {
+                            icon: "📧"
+                          })
+                        }}
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Enter a valid email address to send the template
+                      </p>
+                    </div>
+
+                    {/* Validation Status */}
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                          Validation Status
+                        </span>
+                        {isEmailValid ? (
+                          <Badge className="bg-green-100 text-green-800 border-green-200">
+                            Valid
+                          </Badge>
+                        ) : emailValidationTouched ? (
+                          <Badge className="bg-red-100 text-red-800 border-red-200">
+                            Invalid
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-gray-500">
+                            Pending
+                          </Badge>
                         )}
-                      </Droppable>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="mt-4 dark:bg-gray-900 dark:border-gray-700">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm">Content Statistics</CardTitle>
-                      <CardDescription className="dark:text-gray-400">
-                        Character usage overview
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium">Subject Line</span>
-                          <span className={`text-xs font-medium ${
-                            subjectCharCount > subjectCharLimit ? 'text-red-600' : 'text-gray-600'
-                          }`}>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-blue-700 dark:text-blue-400">Email Format</span>
+                          {isEmailValid ? (
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                          ) : emailValidationTouched ? (
+                            <XCircle className="h-4 w-4 text-red-500" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 text-yellow-500" />
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-blue-700 dark:text-blue-400">Subject Length</span>
+                          <span className={`text-xs font-medium ${subjectCharCount > subjectCharLimit ? 'text-red-600' : 'text-blue-700 dark:text-blue-400'}`}>
                             {subjectCharCount} / {subjectCharLimit}
                           </span>
                         </div>
-                        <CharacterCounter 
-                          current={subjectCharCount} 
-                          max={subjectCharLimit}
-                          showTooltip={false}
-                        />
-                      </div>
-                      
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium">Total Content</span>
-                          <span className={`text-xs font-medium ${
-                            totalComponentsCharCount > totalComponentsCharLimit ? 'text-red-600' : 'text-gray-600'
-                          }`}>
-                            {totalComponentsCharCount} / {totalComponentsCharLimit}
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-blue-700 dark:text-blue-400">Components</span>
+                          <span className="text-xs font-medium text-blue-700 dark:text-blue-400">
+                            {components.length} items
                           </span>
                         </div>
-                        <CharacterCounter 
-                          current={totalComponentsCharCount} 
-                          max={totalComponentsCharLimit}
-                          showTooltip={false}
-                        />
                       </div>
-                      
-                      <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                          <div className="flex justify-between">
-                            <span>Components:</span>
-                            <span className="font-medium">{components.length}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Text components:</span>
-                            <span className="font-medium">
-                              {components.filter(c => c.type === "text").length}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Avg chars per component:</span>
-                            <span className="font-medium">
-                              {components.length > 0 
-                                ? Math.round(totalComponentsCharCount / components.length) 
-                                : 0}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
-                <TabsContent value="templates" className="mt-4">
-                  <Card className="dark:bg-gray-900 dark:border-gray-700">
-                    <CardHeader>
-                      <CardTitle className="text-sm">Email Templates</CardTitle>
-                      <CardDescription className="dark:text-gray-400">
-                        Pre-designed templates
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start h-auto py-3 dark:border-gray-600 dark:hover:bg-gray-700"
-                        onClick={() => loadTemplate([
-                          {
-                            id: "welcome-header",
-                            type: "text",
-                            content: "Welcome to Our Service!",
-                            styles: { fontSize: "28px", color: "#333333", padding: "24px", textAlign: "center", fontWeight: "bold" }
-                          },
-                          {
-                            id: "welcome-image",
-                            type: "image",
-                            content: "",
-                            styles: { width: "100%", height: "250px", padding: "0", src: "https://via.placeholder.com/600x250", alt: "Welcome Image" }
-                          },
-                          {
-                            id: "welcome-message",
-                            type: "text",
-                            content: "Thank you for joining us. We're excited to have you on board!",
-                            styles: { fontSize: "16px", color: "#666666", padding: "20px", textAlign: "center", lineHeight: "1.6" }
-                          },
-                          {
-                            id: "welcome-button",
-                            type: "button",
-                            content: "Get Started",
-                            styles: { backgroundColor: "#007bff", color: "#ffffff", padding: "14px 32px", borderRadius: "6px", textAlign: "center", fontSize: "16px", fontWeight: "bold", href: "#", margin: "0 auto", display: "block", width: "fit-content" }
-                          }
-                        ])}
-                        disabled={isSendLoading}
-                      >
-                        <div className="text-left">
-                          <p className="font-medium">Welcome Email</p>
-                          <p className="text-xs text-gray-500">Perfect for onboarding</p>
-                        </div>
-                      </Button>
-                      
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start h-auto py-3 dark:border-gray-600 dark:hover:bg-gray-700"
-                        onClick={() => loadTemplate([
-                          {
-                            id: "newsletter-header",
-                            type: "text",
-                            content: "Weekly Newsletter",
-                            styles: { fontSize: "24px", color: "#333333", padding: "20px", textAlign: "center", fontWeight: "bold" }
-                          },
-                          {
-                            id: "newsletter-divider",
-                            type: "divider",
-                            content: "",
-                            styles: { height: "1px", backgroundColor: "#e0e0e0", padding: "10px 0" }
-                          },
-                          {
-                            id: "newsletter-content",
-                            type: "text",
-                            content: "Here are this week's updates and insights...",
-                            styles: { fontSize: "14px", color: "#555555", padding: "16px", textAlign: "left", lineHeight: "1.6" }
-                          },
-                          {
-                            id: "newsletter-social",
-                            type: "social",
-                            content: "Follow us for more updates",
-                            styles: { padding: "20px", textAlign: "center", fontSize: "14px", color: "#374151" }
-                        }
-                        ])}
-                        disabled={isSendLoading}
-                      >
-                        <div className="text-left">
-                          <p className="font-medium">Newsletter</p>
-                          <p className="text-xs text-gray-500">Weekly updates template</p>
-                        </div>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
-                <TabsContent value="properties" className="mt-4">
-                  {selectedComponentData ? (
-                    <Card className="dark:bg-gray-900 dark:border-gray-700">
-                      <CardHeader>
-                        <CardTitle className="text-sm flex items-center justify-between">
-                          <span>Properties</span>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="capitalize">
-                              {selectedComponentData.type}
-                            </Badge>
-                            {selectedComponentData.type === "text" && (
-                              <span className="text-xs text-gray-500">
-                                {componentCharCounts[selectedComponentData.id] || 0} chars
-                              </span>
-                            )}
-                          </div>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {selectedComponentData.type === "text" && (
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <Label htmlFor="content">Content</Label>
-                              <CharacterCounter 
-                                current={componentCharCounts[selectedComponentData.id] || 0} 
-                                max={1000}
-                                showLimit={false}
-                                showTooltip={false}
-                                className="text-xs"
-                              />
-                            </div>
-                            <Textarea
-                              id="content"
-                              value={selectedComponentData.content}
-                              onChange={(e) => updateComponent(selectedComponentData.id, { content: e.target.value })}
-                              className="mt-1 dark:bg-gray-800 dark:border-gray-600"
-                              rows={3}
-                              maxLength={1000}
-                              disabled={isSendLoading}
-                            />
-                          </div>
-                        )}
-                        
-                        {selectedComponentData.type !== "text" && (
-                          <div>
-                            <Label htmlFor="content">Content</Label>
-                            <Textarea
-                              id="content"
-                              value={selectedComponentData.content}
-                              onChange={(e) => updateComponent(selectedComponentData.id, { content: e.target.value })}
-                              className="mt-1 dark:bg-gray-800 dark:border-gray-600"
-                              rows={3}
-                              disabled={isSendLoading}
-                            />
-                          </div>
-                        )}
-                        
-                        {selectedComponentData.type === "text" && (
-                          <>
-                            <div>
-                              <Label htmlFor="fontSize">Font Size (px)</Label>
-                              <Input
-                                id="fontSize"
-                                type="number"
-                                value={parseInt(selectedComponentData.styles.fontSize || "16")}
-                              onChange={(e) => updateComponent(selectedComponentData.id, {
-                                  styles: { ...selectedComponentData.styles, fontSize: `${e.target.value}px` }
-                                })}
-                                className="mt-1 dark:bg-gray-800 dark:border-gray-600"
-                                disabled={isSendLoading}
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="color">Text Color</Label>
-                              <Input
-                                id="color"
-                                type="color"
-                                value={selectedComponentData.styles.color || "#333333"}
-                                onChange={(e) => updateComponent(selectedComponentData.id, {
-                                  styles: { ...selectedComponentData.styles, color: e.target.value }
-                                })}
-                                className="mt-1 h-10 w-full p-1 dark:bg-gray-800 dark:border-gray-600"
-                                disabled={isSendLoading}
-                              />
-                            </div>
-                          </>
-                        )}
-                        
-                        {selectedComponentData.type === "button" && (
-                          <>
-                            <div>
-                              <Label htmlFor="bgColor">Background Color</Label>
-                              <Input
-                                id="bgColor"
-                                type="color"
-                                value={selectedComponentData.styles.backgroundColor || "#007bff"}
-                                onChange={(e) => updateComponent(selectedComponentData.id, {
-                                  styles: { ...selectedComponentData.styles, backgroundColor: e.target.value }
-                                })}
-                                className="mt-1 h-10 w-full p-1 dark:bg-gray-800 dark:border-gray-600"
-                                disabled={isSendLoading}
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="href">Link URL</Label>
-                              <Input
-                                id="href"
-                                value={selectedComponentData.styles.href || "#"}
-                                onChange={(e) => updateComponent(selectedComponentData.id, {
-                                  styles: { ...selectedComponentData.styles, href: e.target.value }
-                                })}
-                                className="mt-1 dark:bg-gray-800 dark:border-gray-600"
-                                disabled={isSendLoading}
-                              />
-                            </div>
-                          </>
-                        )}
-                        
-                        <div className="flex gap-2 pt-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => duplicateComponent(selectedComponentData.id)}
-                            className="flex-1 dark:border-gray-600 dark:hover:bg-gray-700"
-                            disabled={isSendLoading}
-                          >
-                            <Copy className="h-4 w-4 mr-2" />
-                            Duplicate
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => deleteComponent(selectedComponentData.id)}
-                            className="flex-1"
-                            disabled={isSendLoading}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <Card className="dark:bg-gray-900 dark:border-gray-700">
-                      <CardContent className="py-8 text-center">
-                        <Type className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                        <p className="text-gray-500 dark:text-gray-400">Select a component to edit its properties</p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </div>
-          </div>
+                    </div>
 
-          <div className="flex-1 bg-gray-100 dark:bg-gray-900 overflow-auto">
-            <div className="p-6">
-              <div className={`mx-auto bg-white dark:bg-gray-800 shadow-xl rounded-lg border dark:border-gray-700 transition-all ${
-                previewMode === "mobile" ? "max-w-sm" : "max-w-2xl"
-              }`}>
-                <div className="border-b dark:border-gray-700 p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                      <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-sm font-medium dark:text-gray-300">
-                        {previewMode === "mobile" ? "📱 Mobile Preview" : "🖥️ Desktop Preview"}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {components.length} components
+                    <LoadingButtonEnhanced
+                      onClick={handleSendEmail}
+                      loadingText="Sending Email..."
+                      successText="Email Sent!"
+                      errorText="Failed to Send"
+                      disabled={isSendDisabled}
+                      className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      autoReset={true}
+                      resetDelay={2000}
+                      showStatusIcon={true}
+                    >
+                      <Send className="mr-2 h-4 w-4" />
+                      Send Template
+                    </LoadingButtonEnhanced>
+
+                    {sendIsLoading && (
+                      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                          <div>
+                            <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                              Sending email...
+                            </p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400">
+                              Please don't close this window
+                            </p>
+                          </div>
                         </div>
-                        <div className="h-4 w-px bg-gray-300 dark:bg-gray-600"></div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {totalComponentsCharCount} chars
-                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {subjectCharCount > subjectCharLimit && (
-                        <AlertCircle className="h-4 w-4 text-red-500" />
-                      )}
-                      <span className={`text-xs font-medium ${
-                        subjectCharCount > subjectCharLimit ? 'text-red-600' : 'text-gray-600'
-                      }`}>
-                        Subject: {subjectCharCount}/{subjectCharLimit}
-                      </span>
-                    </div>
+                    )}
                   </div>
                 </div>
-                
-                <Droppable droppableId="canvas">
-                  {(provided, snapshot) => (
-                    <div
-                      {...provided.droppableProps}
-                      ref={provided.innerRef}
-                      className={`min-h-[500px] p-4 ${
-                        snapshot.isDraggingOver 
-                          ? "bg-blue-50/50 dark:bg-blue-900/20" 
-                          : "bg-white dark:bg-gray-800"
-                      }`}
-                    >
-                      {components.length === 0 ? (
-                        <div className="text-center py-16">
-                          <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8 mb-4">
-                            <Palette className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                            <p className="text-gray-500 dark:text-gray-400 mb-2">Drag components here</p>
-                            <p className="text-sm text-gray-400 dark:text-gray-500">Start building your email template</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Middle - Builder Canvas */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="shadow-lg dark:bg-gray-900">
+              <CardHeader className="border-b">
+                <CardTitle className="flex items-center gap-2">
+                  <Palette className="h-5 w-5" />
+                  Email Builder Canvas
+                </CardTitle>
+                <CardDescription>
+                  Drag components to reorder, click to edit
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className={`border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg p-4 min-h-[600px] bg-white dark:bg-gray-800 ${previewMode === "mobile" ? "max-w-md mx-auto" : ""}`}>
+                  <DragDropContext onDragEnd={handleDragEnd}>
+                    <Droppable droppableId="components">
+                      {(provided) => (
+                        <div
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                          className="space-y-4"
+                        >
+                          {components.map((component, index) => (
+                            <Draggable 
+                              key={component.id} 
+                              draggableId={component.id} 
+                              index={index}
+                            >
+                              {(provided) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                  className={`p-4 border rounded-lg cursor-move transition-all hover:shadow-lg ${selectedComponent === component.id ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'bg-gray-50 dark:bg-gray-700/50 hover:border-blue-300 dark:hover:border-blue-700'}`}
+                                  onClick={() => setSelectedComponent(component.id)}
+                                >
+                                  <div className="flex items-center justify-between mb-3">
+                                    <Badge variant="outline" className="capitalize">
+                                      {component.type}
+                                    </Badge>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          duplicateComponent(component.id)
+                                        }}
+                                      >
+                                        <Copy className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          removeComponent(component.id)
+                                        }}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+
+                                  {component.type === "text" && (
+                                    <div>
+                                      <div className="flex items-center justify-between mb-2">
+                                        <Label htmlFor={`content-${component.id}`} className="text-sm font-medium">
+                                          Text Content
+                                        </Label>
+                                        <span className="text-xs text-gray-500">
+                                          {componentCharCounts[component.id] || 0} characters
+                                        </span>
+                                      </div>
+                                      <Textarea
+                                        id={`content-${component.id}`}
+                                        value={component.content}
+                                        onChange={(e) => updateComponent(component.id, { content: e.target.value })}
+                                        placeholder="Enter your text here..."
+                                        className="mb-3"
+                                        rows={3}
+                                      />
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                          <Label htmlFor={`fontSize-${component.id}`} className="text-xs">
+                                            Font Size
+                                          </Label>
+                                          <div className="flex items-center gap-2">
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              className="h-8 w-8 p-0"
+                                              onClick={() => {
+                                                const currentSize = parseInt(component.styles.fontSize) || 16
+                                                updateComponentStyle(component.id, "fontSize", `${Math.max(8, currentSize - 2)}px`)
+                                              }}
+                                            >
+                                              <Minus className="h-3 w-3" />
+                                            </Button>
+                                            <Input
+                                              id={`fontSize-${component.id}`}
+                                              value={component.styles.fontSize}
+                                              onChange={(e) => updateComponentStyle(component.id, "fontSize", e.target.value)}
+                                              className="h-8 text-center"
+                                            />
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              className="h-8 w-8 p-0"
+                                              onClick={() => {
+                                                const currentSize = parseInt(component.styles.fontSize) || 16
+                                                updateComponentStyle(component.id, "fontSize", `${currentSize + 2}px`)
+                                              }}
+                                            >
+                                              <Plus className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                        <div>
+                                          <Label htmlFor={`color-${component.id}`} className="text-xs">
+                                            Color
+                                          </Label>
+                                          <Input
+                                            id={`color-${component.id}`}
+                                            type="color"
+                                            value={component.styles.color || "#333333"}
+                                            onChange={(e) => updateComponentStyle(component.id, "color", e.target.value)}
+                                            className="h-8 p-1"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {component.type === "image" && (
+                                    <div>
+                                      <div className="mb-3">
+                                        <img
+                                          src={component.styles.src}
+                                          alt={component.styles.alt}
+                                          className="w-full h-auto rounded border"
+                                        />
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                          <Label htmlFor={`src-${component.id}`} className="text-xs">
+                                            Image URL
+                                          </Label>
+                                          <Input
+                                            id={`src-${component.id}`}
+                                            value={component.styles.src}
+                                            onChange={(e) => updateComponentStyle(component.id, "src", e.target.value)}
+                                            className="h-8 text-sm"
+                                          />
+                                        </div>
+                                        <div>
+                                          <Label htmlFor={`alt-${component.id}`} className="text-xs">
+                                            Alt Text
+                                          </Label>
+                                          <Input
+                                            id={`alt-${component.id}`}
+                                            value={component.styles.alt}
+                                            onChange={(e) => updateComponentStyle(component.id, "alt", e.target.value)}
+                                            className="h-8 text-sm"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {component.type === "button" && (
+                                    <div>
+                                      <div className="mb-3">
+                                        <button
+                                          style={{
+                                            backgroundColor: component.styles.backgroundColor,
+                                            color: component.styles.color,
+                                            padding: component.styles.padding,
+                                            borderRadius: component.styles.borderRadius,
+                                            fontSize: component.styles.fontSize,
+                                            fontWeight: component.styles.fontWeight,
+                                            border: "none",
+                                            cursor: "pointer",
+                                            display: "inline-block"
+                                          }}
+                                        >
+                                          {component.content}
+                                        </button>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                          <Label htmlFor={`button-text-${component.id}`} className="text-xs">
+                                            Button Text
+                                          </Label>
+                                          <Input
+                                            id={`button-text-${component.id}`}
+                                            value={component.content}
+                                            onChange={(e) => updateComponent(component.id, { content: e.target.value })}
+                                            className="h-8 text-sm"
+                                          />
+                                        </div>
+                                        <div>
+                                          <Label htmlFor={`button-color-${component.id}`} className="text-xs">
+                                            Background
+                                          </Label>
+                                          <Input
+                                            id={`button-color-${component.id}`}
+                                            type="color"
+                                            value={component.styles.backgroundColor}
+                                            onChange={(e) => updateComponentStyle(component.id, "backgroundColor", e.target.value)}
+                                            className="h-8 p-1"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {component.type === "social" && (
+                                    <div className="text-center">
+                                      <p className="mb-3 text-gray-600 dark:text-gray-300">{component.content}</p>
+                                      <div className="flex justify-center gap-2 mb-3">
+                                        {["facebook", "twitter", "instagram", "linkedin", "youtube"].map((social) => (
+                                          <div
+                                            key={social}
+                                            className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-sm font-bold"
+                                          >
+                                            {social === "facebook" && "f"}
+                                            {social === "twitter" && "𝕏"}
+                                            {social === "instagram" && "📷"}
+                                            {social === "linkedin" && "in"}
+                                            {social === "youtube" && "▶"}
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <Input
+                                        value={component.content}
+                                        onChange={(e) => updateComponent(component.id, { content: e.target.value })}
+                                        placeholder="Social media text"
+                                        className="h-8 text-sm"
+                                      />
+                                    </div>
+                                  )}
+
+                                  {component.type === "divider" && (
+                                    <hr style={component.styles} />
+                                  )}
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                          {components.length === 0 && (
+                            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                              <Layers className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                              <p className="text-lg font-medium mb-2">No components yet</p>
+                              <p className="text-sm">Drag components from the sidebar or click buttons to add</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Component Inspector */}
+            {selectedComponentData && (
+              <Card className="shadow-lg dark:bg-gray-900">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5" />
+                    Component Inspector: {selectedComponentData.type}
+                  </CardTitle>
+                  <CardDescription>
+                    Edit properties for the selected component
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Tabs defaultValue="styles">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="styles">Styles</TabsTrigger>
+                      <TabsTrigger value="content">Content</TabsTrigger>
+                      <TabsTrigger value="advanced">Advanced</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="styles" className="space-y-4 pt-4">
+                      {Object.entries(selectedComponentData.styles).map(([key, value]) => (
+                        <div key={key} className="space-y-2">
+                          <Label htmlFor={key} className="text-sm capitalize">
+                            {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                          </Label>
+                          <Input
+                            id={key}
+                            value={value}
+                            onChange={(e) => updateComponentStyle(selectedComponentData.id, key, e.target.value)}
+                            placeholder={`Enter ${key}`}
+                          />
+                        </div>
+                      ))}
+                    </TabsContent>
+                    <TabsContent value="content" className="space-y-4 pt-4">
+                      {selectedComponentData.type === "text" && (
+                        <div>
+                          <Label htmlFor="content" className="text-sm">Text Content</Label>
+                          <Textarea
+                            id="content"
+                            value={selectedComponentData.content}
+                            onChange={(e) => updateComponent(selectedComponentData.id, { content: e.target.value })}
+                            rows={4}
+                          />
+                        </div>
+                      )}
+                      {selectedComponentData.type === "button" && (
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="button-text" className="text-sm">Button Text</Label>
+                            <Input
+                              id="button-text"
+                              value={selectedComponentData.content}
+                              onChange={(e) => updateComponent(selectedComponentData.id, { content: e.target.value })}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="button-link" className="text-sm">Link URL</Label>
+                            <Input
+                              id="button-link"
+                              value={selectedComponentData.styles.href || "#"}
+                              onChange={(e) => updateComponentStyle(selectedComponentData.id, "href", e.target.value)}
+                            />
                           </div>
                         </div>
-                      ) : (
-                        components.map((component, index) => (
-                          <Draggable key={component.id} draggableId={component.id} index={index}>
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className={`mb-3 relative group ${
-                                  snapshot.isDragging ? "opacity-50" : ""
-                                }`}
-                                onClick={() => setSelectedComponent(component.id)}
-                              >
-                                <div className={`absolute inset-0 border-2 ${
-                                  selectedComponent === component.id
-                                    ? "border-blue-500 dark:border-blue-400"
-                                    : "border-transparent group-hover:border-gray-300 dark:group-hover:border-gray-600"
-                                } rounded-lg pointer-events-none transition-all`}></div>
-                                
-                                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                  {component.type === "text" && (
-                                    <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded">
-                                      {componentCharCounts[component.id] || 0} chars
-                                    </div>
-                                  )}
-                                  <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    className="h-6 w-6 p-0"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      duplicateComponent(component.id)
-                                    }}
-                                    disabled={isSendLoading}
-                                  >
-                                    <Copy className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    className="h-6 w-6 p-0"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      deleteComponent(component.id)
-                                    }}
-                                    disabled={isSendLoading}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                                
-                                <div className="p-4 bg-white dark:bg-gray-900 rounded-lg">
-                                  {component.type === "text" && (
-                                    <div
-                                      style={{
-                                        fontSize: component.styles.fontSize,
-                                        color: component.styles.color,
-                                        padding: component.styles.padding,
-                                        textAlign: component.styles.textAlign,
-                                        fontWeight: component.styles.fontWeight,
-                                        lineHeight: component.styles.lineHeight,
-                                      }}
-                                    >
-                                      {component.content}
-                                    </div>
-                                  )}
-                                  
-                                  {component.type === "image" && (
-                                    <img
-                                      src={component.styles.src}
-                                      alt={component.styles.alt}
-                                      style={{
-                                        width: component.styles.width,
-                                        height: component.styles.height,
-                                        padding: component.styles.padding,
-                                      }}
-                                      className="rounded"
-                                    />
-                                  )}
-                                  
-                                  {component.type === "button" && (
-                                    <a
-                                      href={component.styles.href}
-                                      style={{
-                                        backgroundColor: component.styles.backgroundColor,
-                                        color: component.styles.color,
-                                        padding: component.styles.padding,
-                                        borderRadius: component.styles.borderRadius,
-                                        textAlign: component.styles.textAlign,
-                                        fontSize: component.styles.fontSize,
-                                        fontWeight: component.styles.fontWeight,
-                                        display: component.styles.display,
-                                        margin: component.styles.margin,
-                                        width: component.styles.width,
-                                      }}
-                                      className="inline-block no-underline"
-                                    >
-                                      {component.content}
-                                    </a>
-                                  )}
-                                  
-                                  {component.type === "social" && (
-                                    <div style={{ padding: component.styles.padding, textAlign: component.styles.textAlign }}>
-                                      <div className="flex justify-center gap-3 mb-3">
-                                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">f</div>
-                                        <div className="w-8 h-8 bg-blue-400 rounded-full flex items-center justify-center text-white font-bold">𝕏</div>
-                                        <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">📷</div>
-                                        <div className="w-8 h-8 bg-blue-700 rounded-full flex items-center justify-center text-white font-bold">in</div>
-                                      </div>
-                                      <p style={{ fontSize: component.styles.fontSize, color: component.styles.color }}>
-                                        {component.content}
-                                      </p>
-                                    </div>
-                                  )}
-                                  
-                                  {component.type === "divider" && (
-                                    <hr style={{
-                                      height: component.styles.height,
-                                      backgroundColor: component.styles.backgroundColor,
-                                      padding: component.styles.padding,
-                                      border: 'none',
-                                    }} />
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </Draggable>
-                        ))
                       )}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </div>
-            </div>
+                    </TabsContent>
+                    <TabsContent value="advanced" className="space-y-4 pt-4">
+                      <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                              Advanced Settings
+                            </p>
+                            <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                              These settings affect email rendering across different clients
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            )}
           </div>
-        </DragDropContext>
+        </div>
       </div>
     </div>
   )

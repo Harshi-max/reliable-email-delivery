@@ -38,6 +38,7 @@ import NavLink from "@/components/ui/nav-link"
 import CopyButton from "@/components/ui/copy-button"
 import { CharacterCounter } from "@/components/ui/character-counter"
 import { LoadingButtonEnhanced } from "@/components/ui/loading-button-enhanced"
+import { EmailInput } from "@/components/ui/email-input"
 import { usePreventDoubleClick } from "@/hooks/use-prevent-double-click"
 import toast, { Toaster } from "react-hot-toast"
 
@@ -119,6 +120,10 @@ export default function EmailDashboard() {
   const [bodyCharCount, setBodyCharCount] = useState(0)
   const [bodyCharLimit] = useState(5000)
   const [subjectCharLimit] = useState(100)
+  
+  // Email validation state
+  const [isEmailValid, setIsEmailValid] = useState(false)
+  const [emailValidationTouched, setEmailValidationTouched] = useState(false)
 
   // Simulate real-time updates
   useEffect(() => {
@@ -163,11 +168,16 @@ export default function EmailDashboard() {
     return () => clearInterval(interval)
   }, [])
 
-  const { isLoading: sendLoading, handleClick: handleSendEmail } = usePreventDoubleClick({
+  const { isLoading, handleClick: handleSendEmail } = usePreventDoubleClick({
     action: async () => {
-      // Validation
+      // Enhanced validation with email format check
       if (!email || !subject || !body) {
         throw new Error("Please fill all fields")
+      }
+      
+      if (!isEmailValid) {
+        setEmailValidationTouched(true)
+        throw new Error("Please enter a valid email address")
       }
       
       if (subjectCharCount > subjectCharLimit) {
@@ -222,6 +232,8 @@ export default function EmailDashboard() {
       setBody("")
       setSubjectCharCount(0)
       setBodyCharCount(0)
+      setIsEmailValid(false)
+      setEmailValidationTouched(false)
 
       return result
     },
@@ -229,7 +241,8 @@ export default function EmailDashboard() {
     errorMessage: "Failed to send email",
     disabled: !email || !subject || !body || 
       subjectCharCount > subjectCharLimit || 
-      bodyCharCount > bodyCharLimit
+      bodyCharCount > bodyCharLimit ||
+      !isEmailValid
   })
 
   const getStatusIcon = (status: string) => {
@@ -299,7 +312,10 @@ export default function EmailDashboard() {
   }
 
   const isSendDisabled = !email || !subject || !body || 
-    subjectCharCount > subjectCharLimit || bodyCharCount > bodyCharLimit
+    subjectCharCount > subjectCharLimit || 
+    bodyCharCount > bodyCharLimit || 
+    !isEmailValid ||
+    isLoading
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -495,6 +511,7 @@ export default function EmailDashboard() {
                       <Link href="/builder">
                         <Button
                           className="w-full h-12 border-2 border-dashed border-blue-300 hover:border-blue-500 hover:bg-blue-50 dark:border-blue-700 dark:hover:border-blue-600 dark:hover:bg-blue-900/30 transition-all bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20"
+                          disabled={isLoading}
                         >
                           <Palette className="mr-2 h-5 w-5 text-blue-500 dark:text-blue-400" />
                           <span className="text-blue-600 dark:text-blue-300 font-medium">Design Email Template</span>
@@ -513,31 +530,22 @@ export default function EmailDashboard() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-sm font-medium">
-                        To Email Address
-                      </Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="recipient@example.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="h-11 flex-1"
-                          disabled={sendLoading}
-                        />
-                        {email && (
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => handleCopyEmail(email)}
-                            className="h-11 w-11"
-                            disabled={sendLoading}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
+                      <EmailInput
+                        label="To Email Address"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        showValidation={true}
+                        onValidationChange={(isValid) => {
+                          setIsEmailValid(isValid)
+                          setEmailValidationTouched(true)
+                        }}
+                        disabled={isLoading}
+                        className="h-11"
+                        onCopy={(e) => {
+                          const target = e.currentTarget as HTMLInputElement
+                          handleCopyEmail(target.value)
+                        }}
+                      />
                     </div>
 
                     <div className="space-y-2">
@@ -566,7 +574,7 @@ export default function EmailDashboard() {
                         }}
                         className="h-11"
                         maxLength={subjectCharLimit}
-                        disabled={sendLoading}
+                        disabled={isLoading}
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         Recommended: 6-10 words for better open rates
@@ -600,7 +608,7 @@ export default function EmailDashboard() {
                         rows={6}
                         className="resize-none dark:bg-gray-800"
                         maxLength={bodyCharLimit}
-                        disabled={sendLoading}
+                        disabled={isLoading}
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         Use paragraphs and bullet points for better readability
@@ -612,9 +620,30 @@ export default function EmailDashboard() {
                         <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
                         <div className="space-y-2">
                           <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                            Character Limit Summary
+                            Validation Summary
                           </p>
                           <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs text-blue-700 dark:text-blue-400">Email Format</p>
+                              <div className="flex items-center gap-2">
+                                {isEmailValid ? (
+                                  <>
+                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                    <span className="text-sm font-medium text-green-600">Valid</span>
+                                  </>
+                                ) : emailValidationTouched ? (
+                                  <>
+                                    <XCircle className="h-4 w-4 text-red-500" />
+                                    <span className="text-sm font-medium text-red-600">Invalid</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <AlertCircle className="h-4 w-4 text-yellow-500" />
+                                    <span className="text-sm font-medium text-yellow-600">Required</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
                             <div>
                               <p className="text-xs text-blue-700 dark:text-blue-400">Subject</p>
                               <p className={`text-sm font-medium ${subjectCharCount > subjectCharLimit ? 'text-red-600' : 'text-blue-900 dark:text-blue-300'}`}>
@@ -627,6 +656,20 @@ export default function EmailDashboard() {
                                 {bodyCharCount} / {bodyCharLimit}
                               </p>
                             </div>
+                            <div>
+                              <p className="text-xs text-blue-700 dark:text-blue-400">Status</p>
+                              <div className="flex items-center gap-2">
+                                {email && subject && body && isEmailValid ? (
+                                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                                    Ready to Send
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-gray-500">
+                                    Incomplete
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -634,7 +677,7 @@ export default function EmailDashboard() {
 
                     <LoadingButtonEnhanced
                       onClick={handleSendEmail}
-                      status={sendLoading ? "loading" : "idle"}
+                      status={isLoading ? "loading" : "idle"}
                       loadingText="Sending Email..."
                       successText="Email Sent!"
                       errorText="Failed to Send"
@@ -648,7 +691,7 @@ export default function EmailDashboard() {
                       Send Email
                     </LoadingButtonEnhanced>
 
-                    {sendLoading && (
+                    {isLoading && (
                       <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                         <div className="flex items-center gap-3">
                           <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
@@ -692,11 +735,37 @@ export default function EmailDashboard() {
 
                 <Card className="shadow-lg dark:bg-gray-900">
                   <CardHeader>
-                    <CardTitle className="text-lg">Character Guidelines</CardTitle>
-                    <CardDescription>Best practices for email composition</CardDescription>
+                    <CardTitle className="text-lg">Validation Guidelines</CardTitle>
+                    <CardDescription>Requirements for email submission</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-3">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium flex items-center gap-2">
+                            <Mail className="h-3 w-3" />
+                            Email Address
+                          </span>
+                          <Badge variant="outline" className="text-xs">
+                            Required
+                          </Badge>
+                        </div>
+                        <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                          <li className="flex items-center gap-1">
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                            Must be valid format: user@domain.com
+                          </li>
+                          <li className="flex items-center gap-1">
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                            Domain must be at least 2 characters
+                          </li>
+                          <li className="flex items-center gap-1">
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                            Real-time validation with suggestions
+                          </li>
+                        </ul>
+                      </div>
+                      
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-sm font-medium">Subject Line</span>
