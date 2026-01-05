@@ -1,3 +1,7 @@
+![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
+![Nodejs](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
+![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
+
 # 🚀 Resilient Email Service
 
 A **production-ready, enterprise-grade** email sending service built with TypeScript that implements advanced reliability patterns including retry logic, fallback mechanisms, circuit breakers, rate limiting, and comprehensive monitoring.
@@ -78,20 +82,26 @@ Resend has a limit in sending mails so change the key to send mails
 The service follows **SOLID principles** and implements a **clean architecture**:
 
 \`\`\`
-EmailService (Main orchestrator)
-├── 📧 Providers
-│   ├── ResendProvider (Primary)
-│   ├── SendGridProvider
-│   ├── NodemailerProvider (SMTP)
-│   └── MockProviders (Testing)
-├── 🔄 RetryManager (Exponential backoff)
-├── 🚦 RateLimiter (Token bucket)
-├── ⚡ CircuitBreaker (Failure detection)
-├── 🔒 IdempotencyManager (Duplicate prevention)
-├── 📝 Logger (Structured logging)
-└── 📋 Queue System (Failed email handling)
-/`/`/`
----
+EmailService (Main Orchestrator)
+┃
+┣━━ 📦 Providers (Strategy Pattern)
+┃   ┣━━ 🔹 ResendProvider (Primary)
+┃   ┣━━ 🔸 SendGridProvider (Fallback)
+┃   ┣━━ 📧 NodemailerProvider (SMTP)
+┃   ┗━━ 🧪 MockProviders (Testing)
+┃
+┣━━ 🛠 Resilience Layers
+┃   ┣━━ 🔄 RetryManager ....... [Exponential Backoff]
+┃   ┣━━ 🚦 RateLimiter ........ [Token Bucket]
+┃   ┗━━ ⚡ CircuitBreaker ...... [Failure Detection]
+┃
+┣━━ 🛡 Security & Integrity
+┃   ┣━━ 🔒 IdempotencyManager . [Duplicate Prevention]
+┃   ┗━━ 📋 Queue System ....... [Failed Email Recovery]
+┃
+┗━━ 📊 Observability
+    ┗━━ 📝 Logger ............. [Structured JSON Logging]
+    
 
 ### **Test Coverage**
 The service includes comprehensive unit tests covering:
