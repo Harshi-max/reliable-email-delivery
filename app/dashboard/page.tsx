@@ -31,6 +31,8 @@ import {
   Palette,
 } from "lucide-react"
 import Link from "next/link"
+import ScrollToTop from "@/components/ui/scroll-to-top"
+
 
 interface EmailStatus {
   id: string
@@ -653,16 +655,16 @@ export default function EmailDashboard() {
         </Tabs>
 
         {/* Features Overview */}
-       <Card className="mt-8 shadow-lg animate-fade-in delay-500">
-  <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 dark:text-white">
-    <CardTitle className="flex items-center gap-2 dark:text-white">
-      <Zap className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
-      Enterprise Features
-    </CardTitle>
-    <CardDescription className="dark:text-gray-300">
-      Advanced reliability and monitoring capabilities
-    </CardDescription>
-  </CardHeader>
+        <Card className="mt-8 shadow-lg animate-fade-in delay-500">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 dark:text-white">
+            <CardTitle className="flex items-center gap-2 dark:text-white">
+              <Zap className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
+              Enterprise Features
+            </CardTitle>
+            <CardDescription className="dark:text-gray-300">
+              Advanced reliability and monitoring capabilities
+            </CardDescription>
+          </CardHeader>
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="flex items-start gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow">
@@ -723,6 +725,9 @@ export default function EmailDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Scroll to Top Button - ADDED HERE */}
+      <ScrollToTop />
 
       <style jsx>{`
         @keyframes fade-in {

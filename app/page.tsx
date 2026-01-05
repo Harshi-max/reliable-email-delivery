@@ -18,7 +18,9 @@ import {
   Sparkles,
 } from "lucide-react"
 import Link from "next/link"
-import { ThemeToggle } from "@/components/theme-toggle" 
+import { ThemeToggle } from "@/components/theme-toggle"
+import ScrollToTop from "@/components/ui/scroll-to-top"
+
 export default function LandingPage() {
   const [isHovered, setIsHovered] = useState(false)
 
@@ -275,6 +277,9 @@ export default function LandingPage() {
           </div>
         </footer>
       </div>
+
+      {/* Add ScrollToTop here */}
+      <ScrollToTop />
 
       <style jsx>{`
         @keyframes fade-in {
