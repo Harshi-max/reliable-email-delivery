@@ -90,6 +90,7 @@ EmailService (Main orchestrator)
 ├── 🔒 IdempotencyManager (Duplicate prevention)
 ├── 📝 Logger (Structured logging)
 └── 📋 Queue System (Failed email handling)
+/`/`/`
 ---
 
 ### **Test Coverage**
