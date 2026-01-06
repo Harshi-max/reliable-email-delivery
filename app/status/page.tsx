@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { CheckCircle, XCircle, RefreshCw, Mail, Server, Activity } from "lucide-react"
 import NavLink from "@/components/ui/nav-link"
 import ScrollToTop from "@/components/ui/scroll-to-top"
+import BackButton from "@/components/navigation/BackButton"
+
 
 interface ProviderStatus {
   name: string
@@ -75,6 +77,12 @@ export default function StatusPage() {
                 </h1>
                 <p className="text-muted-foreground">Real-time status of email providers and system health</p>
               </div>
+          <div className="mb-3">
+    <BackButton fallback="/dashboard" label="Back" />
+  </div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-green-600 rounded-lg">
+              <Activity className="h-6 w-6 text-white" />
             </div>
             
             {/* Status Page Navigation with Active Highlighting */}

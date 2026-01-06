@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import BackButton from "@/components/navigation/BackButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -388,6 +389,18 @@ export default function EmailDashboard() {
                 >
                   Status
                 </NavLink>
+              <BackButton fallback="/" label="Back" />
+              <div className="h-6 w-px bg-gray-300"></div>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-600 rounded-lg">
+                  <Mail className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    Email Dashboard
+                  </h1>
+                  <p className="text-muted-foreground">Manage and monitor your email delivery</p>
+                </div>
               </div>
             </div>
 

@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import NavLink from "@/components/ui/nav-link"
 import ScrollToTop from "@/components/ui/scroll-to-top"
 
+import BackButton from "@/components/navigation/BackButton"
 export default function SetupPage() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -30,6 +31,12 @@ export default function SetupPage() {
                 </h1>
                 <p className="text-muted-foreground">Configure real email providers to start sending actual emails</p>
               </div>
+          <div className="mb-3">
+    <BackButton fallback="/dashboard" label="Back" />
+  </div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-blue-600 rounded-lg">
+              <Settings className="h-6 w-6 text-white" />
             </div>
             
             {/* Setup Page Navigation with Active Highlighting */}
