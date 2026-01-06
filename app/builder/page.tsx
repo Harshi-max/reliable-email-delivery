@@ -35,6 +35,12 @@ interface EmailComponent {
   content: string
   styles: { [key: string]: any }
 }
+import { DragComponents } from "@/components/EmailTemplateBuilder/DragComponents"
+import { PropertiesPanel } from "@/components/EmailTemplateBuilder/PropertiesPanel"
+import { LivePreview } from "@/components/EmailTemplateBuilder/LivePreview"
+import { TemplateGallery } from "@/components/EmailTemplateBuilder/TemplateGallery"
+import { EmailComponent } from "@/components/EmailTemplateBuilder/Builder"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function EmailBuilderPage() {
   const [components, setComponents] = useState<EmailComponent[]>([
@@ -63,6 +69,8 @@ export default function EmailBuilderPage() {
   const [emailRecipient, setEmailRecipient] = useState("")
   const [isSending, setIsSending] = useState(false)
 
+  const { toast } = useToast()
+
   const handleDragEnd = useCallback((result: any) => {
     if (!result.destination) return
 
@@ -88,8 +96,9 @@ export default function EmailBuilderPage() {
       })
     } 
     else if (source.droppableId === "canvas" && destination.droppableId === "canvas") {
+    } else if (source.droppableId === "canvas" && destination.droppableId === "canvas") {
       if (source.index === destination.index) return
-      
+
       const newComponents = Array.from(components)
       const [reorderedItem] = newComponents.splice(source.index, 1)
       newComponents.splice(destination.index, 0, reorderedItem)
@@ -126,7 +135,7 @@ export default function EmailBuilderPage() {
   }
 
   const updateComponent = (id: string, updates: Partial<EmailComponent>) => {
-    setComponents(prev => prev.map(comp => 
+    setComponents(prev => prev.map(comp =>
       comp.id === id ? { ...comp, ...updates } : comp
     ))
   }
@@ -170,23 +179,31 @@ export default function EmailBuilderPage() {
       return
     }
     
+    if (!emailRecipient || !emailSubject) {
+      toast({
+        title: "Missing fields",
+        description: "Recipient email and subject are required.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsSending(true)
+
     try {
       const componentHTML = components.map(comp => {
         const styles = Object.entries(comp.styles)
           .filter(([key]) => !key.includes("Url") && key !== "src" && key !== "alt" && key !== "href")
           .map(([key, value]) => `${key.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${value}`)
-          .join('; ')
+          .join("; ")
 
         switch (comp.type) {
           case "text":
             return `<div style="${styles}">${comp.content}</div>`
           case "image":
-            return `<img src="${comp.styles.src || 'https://via.placeholder.com/400x200'}" alt="${comp.styles.alt || 'Image'}" style="${styles}" />`
+            return `<img src="${comp.styles.src || 'https://via.placeholder.com/400x200'}" style="${styles}" />`
           case "button":
-            return `<a href="${comp.styles.href || '#'}" style="display: inline-block; text-decoration: none; ${styles}">${comp.content}</a>`
-          case "social":
-            return `<div style="${styles}"><div style="text-align: center; padding: 20px;"><div style="margin-bottom: 16px;"><a href="${comp.styles.facebookUrl || 'https://facebook.com'}" style="display: inline-block; width: 48px; height: 48px; background-color: #1877f2; border-radius: 50%; text-align: center; line-height: 48px; color: white; text-decoration: none; margin: 0 8px; font-weight: bold; font-size: 18px;">f</a><a href="${comp.styles.twitterUrl || 'https://twitter.com'}" style="display: inline-block; width: 48px; height: 48px; background-color: #1da1f2; border-radius: 50%; text-align: center; line-height: 48px; color: white; text-decoration: none; margin: 0 8px; font-weight: bold; font-size: 18px;">𝕏</a><a href="${comp.styles.instagramUrl || 'https://instagram.com'}" style="display: inline-block; width: 48px; height: 48px; background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); border-radius: 50%; text-align: center; line-height: 48px; color: white; text-decoration: none; margin: 0 8px; font-weight: bold; font-size: 18px;">📷</a><a href="${comp.styles.linkedinUrl || 'https://linkedin.com'}" style="display: inline-block; width: 48px; height: 48px; background-color: #0077b5; border-radius: 50%; text-align: center; line-height: 48px; color: white; text-decoration: none; margin: 0 8px; font-weight: bold; font-size: 14px;">in</a><a href="${comp.styles.youtubeUrl || 'https://youtube.com'}" style="display: inline-block; width: 48px; height: 48px; background-color: #ff0000; border-radius: 50%; text-align: center; line-height: 48px; color: white; text-decoration: none; margin: 0 8px; font-weight: bold; font-size: 18px;">▶</a></div><p style="margin: 0; font-size: ${comp.styles.fontSize || '16px'}; color: ${comp.styles.color || '#374151'}; font-weight: 500;">${comp.content}</p></div></div>`
+            return `<a href="${comp.styles.href || '#'}" style="display:inline-block;${styles}">${comp.content}</a>`
           case "divider":
             return `<hr style="${styles}" />`
           default:
@@ -211,6 +228,7 @@ export default function EmailBuilderPage() {
     </div>
 </body>
 </html>`
+      const html = `<div style="max-width:600px;margin:0 auto">${componentHTML}</div>`
 
       const response = await fetch("/api/email/send", {
         method: "POST",
@@ -240,6 +258,27 @@ export default function EmailBuilderPage() {
       toast.error("❌ Network error", {
         duration: 4000,
         position: "bottom-right",
+          html
+        })
+      })
+
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err?.error || "Failed to send email")
+      }
+
+      toast({
+        title: "Email sent successfully",
+        description: "Your email was delivered successfully.",
+      })
+
+      setEmailRecipient("")
+      setEmailSubject("")
+    } catch (error: any) {
+      toast({
+        title: "Email sending failed",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
       })
     } finally {
       setIsSending(false)
@@ -846,10 +885,79 @@ export default function EmailBuilderPage() {
                   )}
                 </Droppable>
               </div>
+  const selectedComponentData =
+    selectedComponent ? components.find(c => c.id === selectedComponent) : null
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white border-b shadow-sm px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" /> Back
+            </Button>
+          </Link>
+          <h1 className="text-xl font-bold">🎨 Email Builder</h1>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Input
+            placeholder="📧 Email"
+            value={emailRecipient}
+            onChange={(e) => setEmailRecipient(e.target.value)}
+            className="w-40"
+          />
+          <Input
+            placeholder="📝 Subject"
+            value={emailSubject}
+            onChange={(e) => setEmailSubject(e.target.value)}
+            className="w-40"
+          />
+          <Button
+            onClick={handleSendEmail}
+            disabled={isSending}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {isSending ? "Sending..." : <><Send className="h-4 w-4 mr-2" /> Send</>}
+          </Button>
+        </div>
+      </div>
+
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="flex h-[calc(100vh-80px)]">
+          <div className="w-80 bg-white border-r p-4">
+            <Tabs defaultValue="components">
+              <TabsList className="grid grid-cols-3">
+                <TabsTrigger value="components">📦</TabsTrigger>
+                <TabsTrigger value="templates">📚</TabsTrigger>
+                <TabsTrigger value="properties">⚙️</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="components"><DragComponents /></TabsContent>
+              <TabsContent value="templates"><TemplateGallery onSelectTemplate={loadTemplate} /></TabsContent>
+              <TabsContent value="properties">
+                <PropertiesPanel
+                  component={selectedComponentData}
+                  onUpdate={(u) => selectedComponent && updateComponent(selectedComponent, u)}
+                  onDelete={() => selectedComponent && deleteComponent(selectedComponent)}
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          <div className="flex-1 bg-gray-100 p-6 overflow-auto">
+            <div className="max-w-2xl mx-auto bg-white border rounded-lg shadow">
+              <LivePreview
+                components={components}
+                selectedComponent={selectedComponent}
+                onSelectComponent={setSelectedComponent}
+                onDeleteComponent={deleteComponent}
+                onUpdateComponent={updateComponent}
+              />
             </div>
           </div>
-        </DragDropContext>
-      </div>
+        </div>
+      </DragDropContext>
     </div>
   )
 }
