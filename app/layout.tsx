@@ -15,7 +15,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className="min-h-screen bg-background">
+
         <ThemeProvider defaultTheme="light" storageKey="email-service-theme">
           {children}
           <ScrollToTop />

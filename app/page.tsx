@@ -29,7 +29,7 @@ export default function LandingPage() {
       title: "Intelligent Retry Logic",
       description: "Exponential backoff with jitter prevents thundering herd problems",
       color: "text-blue-500",
-      bgColor: "bg-blue-50",
+      bgColor: "bg-blue-50 dark:bg-blue-900/30",
       borderColor: "border-blue-200",
     },
     {
@@ -37,7 +37,7 @@ export default function LandingPage() {
       title: "Provider Fallback",
       description: "Seamless switching between providers ensures maximum deliverability",
       color: "text-green-500",
-      bgColor: "bg-green-50",
+      bgColor: "bg-blue-50 dark:bg-blue-900/30",
       borderColor: "border-green-200",
     },
     {
@@ -45,7 +45,7 @@ export default function LandingPage() {
       title: "Idempotency Protection",
       description: "Prevents duplicate sends with intelligent request deduplication",
       color: "text-purple-500",
-      bgColor: "bg-purple-50",
+      bgColor: "bg-blue-50 dark:bg-blue-900/30",
       borderColor: "border-purple-200",
     },
     {
@@ -53,7 +53,7 @@ export default function LandingPage() {
       title: "Circuit Breaker",
       description: "Prevents cascading failures with automatic recovery mechanisms",
       color: "text-red-500",
-      bgColor: "bg-red-50",
+      bgColor: "bg-blue-50 dark:bg-blue-900/30",
       borderColor: "border-red-200",
     },
     {
@@ -61,7 +61,7 @@ export default function LandingPage() {
       title: "Rate Limiting",
       description: "Token bucket algorithm ensures fair usage and prevents abuse",
       color: "text-orange-500",
-      bgColor: "bg-orange-50",
+      bgColor: "bg-blue-50 dark:bg-blue-900/30",
       borderColor: "border-orange-200",
     },
     {
@@ -69,7 +69,7 @@ export default function LandingPage() {
       title: "Real-time Monitoring",
       description: "Comprehensive observability with metrics and structured logging",
       color: "text-indigo-500",
-      bgColor: "bg-indigo-50",
+      bgColor: "bg-blue-50 dark:bg-blue-900/30",
       borderColor: "border-indigo-200",
     },
   ]
@@ -106,6 +106,10 @@ export default function LandingPage() {
               </div>
             </div>
             <Badge className="bg-green-100 text-green-800 border-green-200 animate-pulse hidden sm:inline-flex">
+                <p className="text-sm text-muted-foreground ">Enterprise-grade reliability</p>
+              </div>
+            </div>
+            <Badge className="bg-green-100 text-green-800 border-green-200 animate-pulse -ml-35 -translate-x-20   ">
               <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
               Live Demo
             </Badge>
@@ -137,7 +141,7 @@ export default function LandingPage() {
             <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground mb-8 sm:mb-12 max-w-3xl mx-auto leading-relaxed animate-fade-in-up delay-200">
               Built with production-ready resilience patterns including{" "}
               <span className="font-semibold text-blue-600">retry logic</span>,{" "}
-              <span className="font-semibold text-green-600">provider fallback</span>,{" "}
+              <span className="font-semibold text-yellow-600">provider fallback</span>,{" "}
               <span className="font-semibold text-purple-600">circuit breakers</span>, and{" "}
               <span className="font-semibold text-orange-600">real-time monitoring</span>.
             </p>
@@ -163,6 +167,7 @@ export default function LandingPage() {
                   variant="outline"
                   size="lg"
                   className="h-12 sm:h-14 px-4 sm:px-8 w-full sm:w-auto border-2 hover:bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 bg-transparent"
+                  className="h-14 px-8 border-2 hover:bg-black/80 backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 bg-transparent"
                 >
                   <Activity className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                   <span className="text-sm sm:text-base">View System Status</span>
@@ -192,7 +197,7 @@ export default function LandingPage() {
         {/* Features Section */}
         <section className="container mx-auto px-4 sm:px-6 py-12 sm:py-16">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+            <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-gray-900 to-yellow-400 bg-clip-text text-transparent">
               Enterprise-Grade Features
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -213,7 +218,7 @@ export default function LandingPage() {
                   >
                     <feature.icon className={`h-8 w-8 ${feature.color}`} />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3 group-hover:text-gray-900 transition-colors">
+                  <h3 className="text-xl font-semibold mb-3 group-hover:text-yellow-400 transition-colors">
                     {feature.title}
                   </h3>
                   <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
@@ -227,6 +232,9 @@ export default function LandingPage() {
         <section className="container mx-auto px-4 sm:px-6 py-12 sm:py-16">
           <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-0 shadow-2xl animate-fade-in-up delay-1000">
             <CardContent className="p-6 sm:p-12 text-center">
+        <section className="container mx-auto px-6 py-16">
+          <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-0 shadow dark-gradient-card">
+            <CardContent className="p-12 text-center">
               <div className="flex items-center justify-center gap-3 mb-6">
                 <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
                 <Badge className="bg-green-100 text-green-800 border-green-200 text-lg px-4 py-2">

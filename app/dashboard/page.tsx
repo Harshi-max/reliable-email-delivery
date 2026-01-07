@@ -221,8 +221,8 @@ export default function EmailDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto p-6 max-w-7xl">
+    <div className="min-h-screen w-full bg-background">
+       <div className="w-full px-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -354,7 +354,7 @@ export default function EmailDashboard() {
                           <span className="text-blue-600 font-medium">Design Email Template</span>
                         </Button>
                       </Link>
-                      <p className="text-xs text-gray-500 mt-2 text-center">Create beautiful emails with drag-and-drop builder</p>
+                      <p className="text-xs text-red-500 mt-2 text-center">Create beautiful emails with drag-and-drop builder</p>
                     </div>
                     
                     <div className="relative">

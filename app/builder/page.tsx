@@ -168,7 +168,7 @@ export default function EmailBuilderPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b shadow-sm px-6 py-4 flex items-center justify-between">
+      <div className="bg-black border-b shadow-sm px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/dashboard">
             <Button variant="ghost" size="sm">
