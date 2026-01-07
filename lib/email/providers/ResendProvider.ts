@@ -30,7 +30,8 @@ export class ResendProvider implements EmailProvider {
 
       if (!response.ok) {
         const errorData = await response.text()
-        throw new Error(`Resend API error: ${response.status} - ${errorData}`)
+        const errorCode = this.categorizeError(response.status)
+        throw new Error(`${errorCode}: ${response.status} - ${errorData}`)
       }
 
       const result = await response.json()
@@ -42,12 +43,25 @@ export class ResendProvider implements EmailProvider {
         timestamp: new Date(),
       }
     } catch (error) {
-      throw new Error(`Resend provider failed: ${error instanceof Error ? error.message : "Unknown error"}`)
+      const enhancedError = this.enhanceError(error)
+      throw enhancedError
     }
   }
 
+  private categorizeError(status: number): string {
+    if (status >= 400 && status < 500) return "CLIENT_ERROR"
+    if (status >= 500) return "SERVER_ERROR"
+    if (status === 429) return "RATE_LIMITED"
+    return "UNKNOWN_ERROR"
+  }
+
+  private enhanceError(error: unknown): Error {
+    const baseMessage = error instanceof Error ? error.message : "Unknown error"
+    return new Error(`[${this.name}] ${baseMessage}`)
+  }
+
   isHealthy(): boolean {
-    return !!this.apiKey
+    return !!this.apiKey && this.apiKey.length > 10
   }
 
   private generateId(): string {

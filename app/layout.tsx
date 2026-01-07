@@ -16,7 +16,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className="min-h-screen bg-background">
+
         <ThemeProvider defaultTheme="light" storageKey="email-service-theme">
           <div className="min-h-screen flex flex-col">
             <main className="flex-1">

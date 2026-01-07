@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import BackButton from "@/components/navigation/BackButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -31,6 +32,8 @@ import {
   Palette,
 } from "lucide-react"
 import Link from "next/link"
+import ScrollToTop from "@/components/ui/scroll-to-top"
+
 
 interface EmailStatus {
   id: string
@@ -218,18 +221,13 @@ export default function EmailDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto p-6 max-w-7xl">
+    <div className="min-h-screen w-full bg-background">
+       <div className="w-full px-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <Link href="/">
-                <Button variant="ghost" size="sm" className="hover:bg-white/80">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Home
-                </Button>
-              </Link>
+              <BackButton fallback="/" label="Back" />
               <div className="h-6 w-px bg-gray-300"></div>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-600 rounded-lg">
@@ -356,7 +354,7 @@ export default function EmailDashboard() {
                           <span className="text-blue-600 font-medium">Design Email Template</span>
                         </Button>
                       </Link>
-                      <p className="text-xs text-gray-500 mt-2 text-center">Create beautiful emails with drag-and-drop builder</p>
+                      <p className="text-xs text-red-500 mt-2 text-center">Create beautiful emails with drag-and-drop builder</p>
                     </div>
                     
                     <div className="relative">
@@ -653,16 +651,16 @@ export default function EmailDashboard() {
         </Tabs>
 
         {/* Features Overview */}
-       <Card className="mt-8 shadow-lg animate-fade-in delay-500">
-  <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 dark:text-white">
-    <CardTitle className="flex items-center gap-2 dark:text-white">
-      <Zap className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
-      Enterprise Features
-    </CardTitle>
-    <CardDescription className="dark:text-gray-300">
-      Advanced reliability and monitoring capabilities
-    </CardDescription>
-  </CardHeader>
+        <Card className="mt-8 shadow-lg animate-fade-in delay-500">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 dark:text-white">
+            <CardTitle className="flex items-center gap-2 dark:text-white">
+              <Zap className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
+              Enterprise Features
+            </CardTitle>
+            <CardDescription className="dark:text-gray-300">
+              Advanced reliability and monitoring capabilities
+            </CardDescription>
+          </CardHeader>
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="flex items-start gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow">
@@ -723,6 +721,9 @@ export default function EmailDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Scroll to Top Button - ADDED HERE */}
+      <ScrollToTop />
 
       <style jsx>{`
         @keyframes fade-in {
