@@ -70,3 +70,35 @@ export interface ServiceMetrics {
   queueLength: number
   uptime: number
 }
+
+export interface EmailAnalytics {
+  id: string
+  timestamp: Date
+  status: "delivered" | "bounced" | "opened" | "clicked" | "failed"
+  provider: string
+  recipient: string
+  subject: string
+  deliveryTime?: number
+  openTime?: Date
+  clickTime?: Date
+  bounceReason?: string
+  userAgent?: string
+  ipAddress?: string
+}
+
+export interface AnalyticsMetrics {
+  deliveryRate: number
+  openRate: number
+  clickRate: number
+  bounceRate: number
+  totalEmails: number
+  timeRange: string
+}
+
+export interface AnalyticsFilter {
+  dateFrom?: Date
+  dateTo?: Date
+  provider?: string
+  status?: string
+  recipient?: string
+}

@@ -26,6 +26,7 @@ A **production-ready, enterprise-grade** email sending service built with TypeSc
 - ✅ **Queue System**: In-memory queue for handling failed emails with auto-retry
 - ✅ **Health Monitoring**: Provider health checks and system status reporting
 - ✅ **Live Dashboard**: Beautiful animated UI with real-time metrics and monitoring
+- ✅ **Performance Analytics**: Comprehensive email analytics with delivery, open, click, and bounce rates
 
 ### 🔌 **Provider Support**
 - ✅ **Resend**: Modern email API with excellent deliverability
@@ -129,6 +130,7 @@ The service includes comprehensive unit tests covering:
 ### **Pages Available**
 - **`/`** - Beautiful animated landing page
 - **`/dashboard`** - Full-featured email management dashboard
+- **`/analytics`** - Email performance analytics with interactive charts
 - **`/status`** - System health and provider status
 - **`/setup`** - Provider configuration guide
 
@@ -138,6 +140,7 @@ The service includes comprehensive unit tests covering:
 - 📈 Provider health monitoring
 - 📋 Activity logs and history
 - ⚙️ System configuration status
+- 📊 Performance analytics with interactive charts and filters
 
 ## 🔒 Security & Best Practices
 
