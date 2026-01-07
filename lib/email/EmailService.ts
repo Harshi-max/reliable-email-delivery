@@ -71,6 +71,7 @@ export class EmailService {
 
   async sendEmail(request: EmailRequest, idempotencyKey?: string): Promise<EmailResponse> {
     const requestId = idempotencyKey || this.generateRequestId(request)
+    this.logger.logRequest()
 
     this.logger.info(`Attempting to send email`, { requestId, to: request.to })
 
@@ -83,8 +84,8 @@ export class EmailService {
 
     // Check rate limiting
     if (!this.rateLimiter.allowRequest()) {
-      const error = "Rate limit exceeded"
-      this.logger.warn(error, { requestId })
+      const error = "Rate limit exceeded - too many requests"
+      this.logger.error(error, { requestId, rateLimitStatus: "exceeded" })
       const response: EmailResponse = {
         id: requestId,
         status: "failed",
@@ -98,6 +99,7 @@ export class EmailService {
 
     try {
       const response = await this.sendWithRetryAndFallback(request, requestId)
+      this.logger.logSuccess(response.provider)
       this.idempotencyManager.storeResponse(requestId, response)
       return response
     } catch (error) {
@@ -105,6 +107,7 @@ export class EmailService {
       this.logger.error(`Failed to send email after all attempts`, {
         requestId,
         error: errorMessage,
+        totalProviders: this.providers.length,
       })
 
       const response: EmailResponse = {
@@ -167,11 +170,12 @@ export class EmailService {
         lastError = error instanceof Error ? error : new Error("Unknown error")
         circuitBreaker.recordFailure()
 
-        this.logger.warn(`Provider ${provider.name} failed`, {
+        this.logger.error(`Provider ${provider.name} failed`, {
           requestId,
           provider: provider.name,
           error: lastError.message,
           attempts: totalAttempts,
+          circuitBreakerState: circuitBreaker.getState(),
         })
       }
     }
@@ -264,5 +268,14 @@ export class EmailService {
       clearInterval(this.queueProcessor)
     }
     this.logger.info("Email service shutdown completed")
+  }
+
+  getServiceMetrics() {
+    return {
+      ...this.logger.getMetrics(),
+      queueLength: this.emailQueue.length,
+      providersStatus: this.getProviderStatus(),
+      uptime: process.uptime(),
+    }
   }
 }
