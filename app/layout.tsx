@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { ThemeProvider } from "@/app/providers/theme-providers"
+import ScrollToTop from "@/components/ui/scroll-to-top"
 export const metadata: Metadata = {
   title: 'v0 App',
   description: 'Created with v0',
@@ -17,6 +18,7 @@ export default function RootLayout({
       <body>
         <ThemeProvider defaultTheme="light" storageKey="email-service-theme">
           {children}
+          <ScrollToTop />
         </ThemeProvider>
       </body>
     </html>
