@@ -311,7 +311,7 @@ export default function EmailDashboard() {
         </Alert>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[400px]">
+          <TabsList className="grid w-full grid-cols-5 lg:w-[500px]">
             <TabsTrigger value="send" className="flex items-center gap-2">
               <Send className="h-4 w-4" />
               Send
@@ -327,6 +327,10 @@ export default function EmailDashboard() {
             <TabsTrigger value="logs" className="flex items-center gap-2">
               <Eye className="h-4 w-4" />
               Logs
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Analytics
             </TabsTrigger>
           </TabsList>
 
@@ -645,6 +649,32 @@ export default function EmailDashboard() {
                     ))}
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6 animate-fade-in">
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-blue-500" />
+                  Performance Analytics
+                </CardTitle>
+                <CardDescription>Comprehensive email performance insights and metrics</CardDescription>
+              </CardHeader>
+              <CardContent className="text-center py-12">
+                <TrendingUp className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Advanced Analytics Dashboard</h3>
+                <p className="text-muted-foreground mb-6">
+                  Get detailed insights into delivery rates, open rates, click rates, and bounce rates with interactive charts and filters.
+                </p>
+                <Link href="/analytics">
+                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    Open Analytics Dashboard
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           </TabsContent>

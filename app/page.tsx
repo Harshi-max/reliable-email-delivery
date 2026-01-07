@@ -159,14 +159,24 @@ export default function LandingPage() {
                   />
                 </Button>
               </Link>
-              <Link href="/status">
+              <Link href="/analytics">
                 <Button
                   variant="outline"
                   size="lg"
                   className="h-14 px-8 border-2 hover:bg-black/80 backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 bg-transparent"
                 >
                   <Activity className="mr-2 h-5 w-5" />
-                  View System Status
+                  View Analytics
+                </Button>
+              </Link>
+              <Link href="/status">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-14 px-8 border-2 hover:bg-black/80 backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 bg-transparent"
+                >
+                  <Eye className="mr-2 h-5 w-5" />
+                  System Status
                 </Button>
               </Link>
             </div>

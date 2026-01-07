@@ -7,6 +7,7 @@ import { RateLimiter } from "./utils/RateLimiter"
 import { CircuitBreaker } from "./utils/CircuitBreaker"
 import { IdempotencyManager } from "./utils/IdempotencyManager"
 import { Logger } from "./utils/Logger"
+import { AnalyticsManager } from "./utils/AnalyticsManager"
 
 export class EmailService {
   private providers: EmailProvider[]
@@ -15,6 +16,7 @@ export class EmailService {
   private circuitBreakers: Map<string, CircuitBreaker>
   private idempotencyManager: IdempotencyManager
   private logger: Logger
+  private analyticsManager: AnalyticsManager
   private emailQueue: QueuedEmail[]
   private config: EmailServiceConfig
   private queueProcessor?: NodeJS.Timeout
@@ -43,7 +45,7 @@ export class EmailService {
 
     // Use provided providers or default ones
     this.providers = config?.providers || [
-      new ResendProvider("re_2HBELJFi_F1TAqXQf7MBQbha99oP8Lroi"),
+      new ResendProvider(process.env.RESEND_API_KEY || ""),
       new MockEmailProviderA(),
       new MockEmailProviderB(),
     ]
@@ -53,6 +55,7 @@ export class EmailService {
     this.circuitBreakers = new Map()
     this.idempotencyManager = new IdempotencyManager()
     this.logger = new Logger()
+    this.analyticsManager = new AnalyticsManager()
     this.emailQueue = []
 
     // Initialize circuit breakers for each provider
@@ -100,6 +103,16 @@ export class EmailService {
     try {
       const response = await this.sendWithRetryAndFallback(request, requestId)
       this.logger.logSuccess(response.provider)
+      
+      // Record analytics event
+      this.analyticsManager.recordEmailEvent({
+        status: "delivered",
+        provider: response.provider || "unknown",
+        recipient: request.to,
+        subject: request.subject,
+        deliveryTime: Date.now() - new Date(response.timestamp).getTime(),
+      })
+      
       this.idempotencyManager.storeResponse(requestId, response)
       return response
     } catch (error) {
@@ -117,6 +130,15 @@ export class EmailService {
         attempts: this.config.retry.maxAttempts,
         timestamp: new Date(),
       }
+
+      // Record analytics event for failure
+      this.analyticsManager.recordEmailEvent({
+        status: "failed",
+        provider: "unknown",
+        recipient: request.to,
+        subject: request.subject,
+        bounceReason: errorMessage,
+      })
 
       this.idempotencyManager.storeResponse(requestId, response)
 
@@ -277,5 +299,9 @@ export class EmailService {
       providersStatus: this.getProviderStatus(),
       uptime: process.uptime(),
     }
+  }
+
+  getAnalyticsManager(): AnalyticsManager {
+    return this.analyticsManager
   }
 }
