@@ -222,34 +222,36 @@ export default function EmailDashboard() {
 
   return (
     <div className="min-h-screen w-full bg-background">
-       <div className="w-full px-6">
+       <div className="w-full px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <BackButton fallback="/" label="Back" />
-              <div className="h-6 w-px bg-gray-300"></div>
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <BackButton fallback="/" label="Back to Home" forceRedirect={true} />
+              <div className="hidden sm:block h-6 w-px bg-gray-300"></div>
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-600 rounded-lg">
+                <div className="p-2 bg-blue-600 rounded-lg shrink-0">
                   <Mail className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     Email Dashboard
                   </h1>
-                  <p className="text-muted-foreground">Manage and monitor your email delivery</p>
+                  <p className="text-sm text-muted-foreground">Manage and monitor your email delivery</p>
                 </div>
               </div>
             </div>
-            <Badge className="bg-green-100 text-green-800 border-green-200 animate-pulse">
-              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-              Live System
-            </Badge>
-            <ThemeToggle />
+            <div className="flex items-center justify-between sm:justify-end gap-3 w-full xl:w-auto">
+              <Badge className="bg-green-100 text-green-800 border-green-200 animate-pulse whitespace-nowrap">
+                <div className="w-2 h-2 bg-green-50 rounded-full mr-2"></div>
+                Live System
+              </Badge>
+              <ThemeToggle />
+            </div>
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <Card className="border-l-4 border-l-green-500 animate-fade-in">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -311,7 +313,7 @@ export default function EmailDashboard() {
         </Alert>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[400px]">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-[400px] h-auto">
             <TabsTrigger value="send" className="flex items-center gap-2">
               <Send className="h-4 w-4" />
               Send

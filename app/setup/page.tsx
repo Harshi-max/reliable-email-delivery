@@ -15,23 +15,25 @@ export default function SetupPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto p-6 max-w-4xl">
+      <div className="container mx-auto px-6 py-8 max-w-4xl">
         <div className="mb-8">
           <div className="mb-3">
-    <BackButton fallback="/dashboard" label="Back" />
+    <BackButton fallback="/dashboard" label="Back to Dashboard" forceRedirect={true} />
   </div>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-blue-600 rounded-lg">
-              <Settings className="h-6 w-6 text-white" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-600 rounded-lg shrink-0">
+                <Settings className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Email Provider Setup
+                </h1>
+                <p className="text-sm text-muted-foreground">Configure real email providers to start sending actual emails</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Email Provider Setup
-              </h1>
-              <p className="text-muted-foreground">Configure real email providers to start sending actual emails</p>
-            </div>
+            <ThemeToggle />
           </div>
-           <ThemeToggle />
            
           <Alert className="mb-6">
             <AlertTriangle className="h-4 w-4" />
@@ -43,7 +45,7 @@ export default function SetupPage() {
         </div>
 
         <Tabs defaultValue="sendgrid" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto">
             <TabsTrigger value="sendgrid">SendGrid</TabsTrigger>
             <TabsTrigger value="resend">Resend</TabsTrigger>
             <TabsTrigger value="smtp">SMTP</TabsTrigger>

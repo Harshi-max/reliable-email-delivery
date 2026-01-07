@@ -106,7 +106,7 @@ export default function LandingPage() {
                 <p className="text-sm text-muted-foreground ">Enterprise-grade reliability</p>
               </div>
             </div>
-            <Badge className="bg-green-100 text-green-800 border-green-200 animate-pulse -ml-35 -translate-x-20   ">
+            <Badge className="bg-green-100 text-green-800 border-green-200 animate-pulse hidden sm:inline-flex">
               <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
               Live Demo
             </Badge>
