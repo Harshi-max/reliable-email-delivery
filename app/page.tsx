@@ -19,7 +19,6 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
-import ScrollToTop from "@/components/ui/scroll-to-top"
 
 export default function LandingPage() {
   const [isHovered, setIsHovered] = useState(false)
@@ -93,20 +92,20 @@ export default function LandingPage() {
 
       <div className="relative z-10">
         {/* Header */}
-        <header className="container mx-auto px-6 py-8">
+        <header className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl shadow-lg">
                 <Mail className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight">
                   Resilient Email Service
                 </h1>
-                <p className="text-sm text-muted-foreground">Enterprise-grade reliability</p>
+                <p className="text-xs sm:text-sm text-muted-foreground hidden xs:block">Enterprise-grade reliability</p>
               </div>
             </div>
-            <Badge className="bg-green-100 text-green-800 border-green-200 animate-pulse">
+            <Badge className="bg-green-100 text-green-800 border-green-200 animate-pulse hidden sm:inline-flex">
               <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
               Live Demo
             </Badge>
@@ -115,16 +114,16 @@ export default function LandingPage() {
         </header>
 
         {/* Hero Section */}
-        <section className="container mx-auto px-6 py-16 text-center">
+        <section className="container mx-auto px-4 sm:px-6 py-12 sm:py-16 text-center">
           <div className="max-w-4xl mx-auto">
             {/* Animated Badge */}
             <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm border border-blue-200 rounded-full px-4 py-2 mb-8 shadow-lg animate-fade-in">
-              <Sparkles className="h-4 w-4 text-blue-500 animate-spin" />
-              <span className="text-sm font-medium text-blue-700">Powered by Advanced Resilience Patterns</span>
+              <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 animate-spin" />
+              <span className="text-xs sm:text-sm font-medium text-blue-700">Powered by Advanced Resilience Patterns</span>
             </div>
 
             {/* Main Heading */}
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-fade-in-up">
+            <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold mb-4 sm:mb-6 animate-fade-in-up">
               <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                 Enterprise Email
               </span>
@@ -135,7 +134,7 @@ export default function LandingPage() {
             </h1>
 
             {/* Subtitle */}
-            <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed animate-fade-in-up delay-200">
+            <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground mb-8 sm:mb-12 max-w-3xl mx-auto leading-relaxed animate-fade-in-up delay-200">
               Built with production-ready resilience patterns including{" "}
               <span className="font-semibold text-blue-600">retry logic</span>,{" "}
               <span className="font-semibold text-green-600">provider fallback</span>,{" "}
@@ -144,45 +143,45 @@ export default function LandingPage() {
             </p>
 
             {/* CTA Button */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-in-up delay-400">
-              <Link href="/dashboard">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 sm:mb-16 animate-fade-in-up delay-400 w-full sm:w-auto">
+              <Link href="/dashboard" className="w-full sm:w-auto">
                 <Button
                   size="lg"
-                  className="h-14 px-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 group"
+                  className="h-12 sm:h-14 px-4 sm:px-8 w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 group"
                   onMouseEnter={() => setIsHovered(true)}
                   onMouseLeave={() => setIsHovered(false)}
                 >
-                  <Mail className="mr-3 h-5 w-5 group-hover:animate-bounce" />
-                  Launch Email Dashboard
+                  <Mail className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 group-hover:animate-bounce" />
+                  <span className="text-sm sm:text-base">Launch Email Dashboard</span>
                   <ArrowRight
-                    className={`ml-3 h-5 w-5 transition-transform duration-300 ${isHovered ? "translate-x-1" : ""}`}
+                    className={`ml-2 sm:ml-3 h-4 w-4 sm:h-5 sm:w-5 transition-transform duration-300 ${isHovered ? "translate-x-1" : ""}`}
                   />
                 </Button>
               </Link>
-              <Link href="/status">
+              <Link href="/status" className="w-full sm:w-auto">
                 <Button
                   variant="outline"
                   size="lg"
-                  className="h-14 px-8 border-2 hover:bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 bg-transparent"
+                  className="h-12 sm:h-14 px-4 sm:px-8 w-full sm:w-auto border-2 hover:bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 bg-transparent"
                 >
-                  <Activity className="mr-2 h-5 w-5" />
-                  View System Status
+                  <Activity className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-sm sm:text-base">View System Status</span>
                 </Button>
               </Link>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16 animate-fade-in-up delay-600">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-12 sm:mb-16 animate-fade-in-up delay-600">
               {stats.map((stat, index) => (
                 <Card
                   key={stat.label}
                   className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
                   style={{ animationDelay: `${600 + index * 100}ms` }}
                 >
-                  <CardContent className="p-6 text-center">
-                    <stat.icon className={`h-8 w-8 mx-auto mb-3 ${stat.color}`} />
-                    <div className="text-2xl font-bold mb-1">{stat.value}</div>
-                    <div className="text-sm text-muted-foreground">{stat.label}</div>
+                  <CardContent className="p-3 sm:p-6 text-center">
+                    <stat.icon className={`h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 sm:mb-3 ${stat.color}`} />
+                    <div className="text-lg sm:text-2xl font-bold mb-1">{stat.value}</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground">{stat.label}</div>
                   </CardContent>
                 </Card>
               ))}
@@ -191,7 +190,7 @@ export default function LandingPage() {
         </section>
 
         {/* Features Section */}
-        <section className="container mx-auto px-6 py-16">
+        <section className="container mx-auto px-4 sm:px-6 py-12 sm:py-16">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
               Enterprise-Grade Features
@@ -208,7 +207,7 @@ export default function LandingPage() {
                 className={`group bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-500 hover:${feature.bgColor} animate-fade-in-up`}
                 style={{ animationDelay: `${800 + index * 150}ms` }}
               >
-                <CardContent className="p-8">
+                <CardContent className="p-6 sm:p-8">
                   <div
                     className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl ${feature.bgColor} ${feature.borderColor} border-2 mb-6 group-hover:scale-110 transition-transform duration-300`}
                   >
@@ -225,9 +224,9 @@ export default function LandingPage() {
         </section>
 
         {/* Provider Status */}
-        <section className="container mx-auto px-6 py-16">
+        <section className="container mx-auto px-4 sm:px-6 py-12 sm:py-16">
           <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-0 shadow-2xl animate-fade-in-up delay-1000">
-            <CardContent className="p-12 text-center">
+            <CardContent className="p-6 sm:p-12 text-center">
               <div className="flex items-center justify-center gap-3 mb-6">
                 <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
                 <Badge className="bg-green-100 text-green-800 border-green-200 text-lg px-4 py-2">
@@ -241,7 +240,7 @@ export default function LandingPage() {
                 Resend provider is configured and healthy. The system is ready to deliver emails with enterprise-grade
                 reliability and monitoring.
               </p>
-              <div className="flex items-center justify-center gap-8">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-green-500" />
                   <span className="font-medium">Resend Active</span>
@@ -260,7 +259,7 @@ export default function LandingPage() {
         </section>
 
         {/* Footer */}
-        <footer className="container mx-auto px-6 py-12 text-center">
+        <footer className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 text-center">
           <div className="max-w-2xl mx-auto">
             <p className="text-muted-foreground mb-4">
               Built with modern technologies and enterprise-grade reliability patterns
@@ -278,8 +277,8 @@ export default function LandingPage() {
         </footer>
       </div>
 
-      {/* Add ScrollToTop here */}
-      <ScrollToTop />
+
+
 
       <style jsx>{`
         @keyframes fade-in {
