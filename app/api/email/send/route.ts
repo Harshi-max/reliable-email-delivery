@@ -101,14 +101,17 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("❌ Email sending failed:", error)
+    
+    const errorResponse = {
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+      id: Date.now().toString(),
+      attempts: 1,
+      timestamp: new Date().toISOString(),
+    }
 
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error occurred",
-        id: Date.now().toString(),
-        attempts: 1,
-      },
-      { status: 500 },
-    )
+    // Determine appropriate status code based on error type
+    const statusCode = error instanceof Error && error.message.includes("Rate limit") ? 429 : 500
+
+    return NextResponse.json(errorResponse, { status: statusCode })
   }
 }

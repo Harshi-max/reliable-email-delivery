@@ -60,3 +60,13 @@ export interface QueuedEmail {
   nextRetry: Date
   createdAt: Date
 }
+
+export interface ServiceMetrics {
+  totalRequests: number
+  successCount: number
+  errorCount: number
+  successRate: number
+  providerFailures: Record<string, number>
+  queueLength: number
+  uptime: number
+}

@@ -8,6 +8,9 @@ import { CircuitBreaker } from "./utils/CircuitBreaker"
 import { IdempotencyManager } from "./utils/IdempotencyManager"
 import { Logger } from "./utils/Logger"
 
+// ✅ ADDED: Provider health history tracking
+import { providerHealthHistoryStore } from "../monitoring/providerHealthHistory"
+
 export class RealEmailService {
   private providers: EmailProvider[]
   private retryManager: RetryManager
@@ -39,7 +42,6 @@ export class RealEmailService {
       ...config,
     }
 
-    // Initialize real providers based on environment variables
     this.providers = this.initializeProviders()
 
     this.retryManager = new RetryManager(this.config.retry)
@@ -48,7 +50,6 @@ export class RealEmailService {
     this.idempotencyManager = new IdempotencyManager()
     this.logger = new Logger()
 
-    // Initialize circuit breakers for each provider
     this.providers.forEach((provider) => {
       this.circuitBreakers.set(provider.name, new CircuitBreaker(this.config.circuitBreaker, provider.name))
     })
@@ -57,17 +58,14 @@ export class RealEmailService {
   private initializeProviders(): EmailProvider[] {
     const providers: EmailProvider[] = []
 
-    // Add SendGrid if API key is available
     if (process.env.SENDGRID_API_KEY) {
       providers.push(new SendGridProvider(process.env.SENDGRID_API_KEY))
     }
 
-    // Add Resend if API key is available
     if (process.env.RESEND_API_KEY) {
       providers.push(new ResendProvider(process.env.RESEND_API_KEY))
     }
 
-    // Add Nodemailer if SMTP config is available
     if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
       providers.push(
         new NodemailerProvider({
@@ -94,14 +92,12 @@ export class RealEmailService {
 
     this.logger.info(`Attempting to send email with real providers`, { requestId, to: request.to })
 
-    // Check idempotency
     const existingResponse = this.idempotencyManager.getResponse(requestId)
     if (existingResponse) {
       this.logger.info(`Returning cached response for idempotent request`, { requestId })
       return existingResponse
     }
 
-    // Check rate limiting
     if (!this.rateLimiter.allowRequest()) {
       const error = "Rate limit exceeded"
       this.logger.warn(error, { requestId })
@@ -167,6 +163,14 @@ export class RealEmailService {
         })
 
         circuitBreaker.recordSuccess()
+
+        // ✅ ADDED: record healthy provider event
+        providerHealthHistoryStore.record({
+          provider: provider.name,
+          status: "healthy",
+          timestamp: new Date().toISOString(),
+        })
+
         this.logger.info(`Email sent successfully via ${provider.name}`, {
           requestId,
           provider: provider.name,
@@ -181,6 +185,14 @@ export class RealEmailService {
       } catch (error) {
         lastError = error instanceof Error ? error : new Error("Unknown error")
         circuitBreaker.recordFailure()
+
+        // ✅ ADDED: record unhealthy provider event
+        providerHealthHistoryStore.record({
+          provider: provider.name,
+          status: "unhealthy",
+          timestamp: new Date().toISOString(),
+          reason: lastError.message,
+        })
 
         this.logger.warn(`Provider ${provider.name} failed`, {
           requestId,
