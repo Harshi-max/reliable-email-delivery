@@ -59,8 +59,8 @@ export default function StatusPage() {
   const healthyProviders = providers.filter((p) => p.configured && p.healthy)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto p-6 max-w-4xl">
+    <div className="min-h-screen w-full bg-background">
+       <div className="w-full px-6">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-green-600 rounded-lg">
@@ -144,7 +144,7 @@ export default function StatusPage() {
               {providers.map((provider) => (
                 <div
                   key={provider.name}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-black-50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     {provider.configured && provider.healthy ? (
