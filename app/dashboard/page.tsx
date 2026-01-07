@@ -328,6 +328,8 @@ export default function EmailDashboard() {
       />
 
       <div className="container mx-auto p-6 max-w-7xl">
+    <div className="min-h-screen w-full bg-background">
+       <div className="w-full px-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -530,6 +532,7 @@ export default function EmailDashboard() {
                         </Button>
                       </Link>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">Create beautiful emails with drag-and-drop builder</p>
+                      <p className="text-xs text-red-500 mt-2 text-center">Create beautiful emails with drag-and-drop builder</p>
                     </div>
 
                     <div className="relative">
