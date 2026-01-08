@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
+import ScrollToTop from "@/components/ui/scroll-to-top"
 export default function LandingPage() {
   const [isHovered, setIsHovered] = useState(false)
 

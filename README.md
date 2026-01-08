@@ -26,6 +26,7 @@ A **production-ready, enterprise-grade** email sending service built with TypeSc
 - ✅ **Queue System**: In-memory queue for handling failed emails with auto-retry
 - ✅ **Health Monitoring**: Provider health checks and system status reporting
 - ✅ **Live Dashboard**: Beautiful animated UI with real-time metrics and monitoring
+- ✅ **Smart Error Normalization**: Plain-language error explanations with suggested fixes
 
 ### 🔌 **Provider Support**
 - ✅ **Resend**: Modern email API with excellent deliverability
@@ -107,6 +108,8 @@ EmailService (Main Orchestrator)
 
 │   ├── 🔒 IdempotencyManager . [Duplicate Prevention]
 
+│   ├── 🔍 ErrorNormalizer .... [Smart Error Analysis]
+
 │   └── 📋 Queue System ....... [Failed Email Recovery]
 
 └── 📊 Observability
@@ -138,6 +141,20 @@ The service includes comprehensive unit tests covering:
 - 📈 Provider health monitoring
 - 📋 Activity logs and history
 - ⚙️ System configuration status
+- 🔍 **Smart error explanations** - Plain-language error details with suggested fixes
+
+## 🔍 Error Normalization
+
+The service includes an intelligent error normalization system that transforms cryptic provider errors into actionable insights:
+
+**What you see instead of raw errors:**
+- 📝 **Clear explanation**: "DNS lookup failed - unable to find the email provider's server"
+- 🏷️ **Error category**: Authentication, Network, Rate Limiting, etc.
+- ⚡ **Severity level**: Temporary, Permanent, or Critical
+- 💡 **Suggested action**: "Check internet connection. If persistent, the provider may be experiencing an outage"
+- 🔄 **Smart decisions**: Automatic retry and fallback recommendations
+
+See [ERROR_NORMALIZATION.md](ERROR_NORMALIZATION.md) for detailed documentation and examples.
 
 ## 🔒 Security & Best Practices
 
