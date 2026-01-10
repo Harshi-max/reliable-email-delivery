@@ -6,12 +6,22 @@ export interface EmailRequest {
   html?: string
 }
 
+export interface NormalizedErrorInfo {
+  explanation: string
+  category: string
+  severity: string
+  suggestedAction: string
+  shouldRetry: boolean
+  shouldFallback: boolean
+}
+
 export interface EmailResponse {
   id: string
   status: "sent" | "failed" | "queued" | "retrying"
   provider?: string
   attempts: number
   error?: string
+  normalizedError?: NormalizedErrorInfo
   timestamp: Date
 }
 

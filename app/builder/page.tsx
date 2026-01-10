@@ -29,6 +29,7 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react"
+import { ArrowLeft, Send } from "lucide-react"
 import Link from "next/link"
 import toast, { Toaster } from "react-hot-toast"
 import { CharacterCounter } from "@/components/ui/character-counter"
@@ -46,6 +47,12 @@ import { DragComponents } from "@/components/EmailTemplateBuilder/DragComponents
 import { PropertiesPanel } from "@/components/EmailTemplateBuilder/PropertiesPanel"
 import { LivePreview } from "@/components/EmailTemplateBuilder/LivePreview"
 import { TemplateGallery } from "@/components/EmailTemplateBuilder/TemplateGallery"
+interface EmailComponent {
+  id: string
+  type: "text" | "image" | "button" | "social" | "divider"
+  content: string
+  styles: { [key: string]: any }
+}
 import { EmailComponent } from "@/components/EmailTemplateBuilder/Builder"
 import { useToast } from "@/components/ui/use-toast"
 
@@ -174,7 +181,15 @@ export default function EmailBuilderPage() {
       case "image":
         return { width: "100%", height: "200px", padding: "10px" }
       case "button":
-        return { backgroundColor: "#007bff", color: "#ffffff", padding: "12px 24px", borderRadius: "6px", textAlign: "center" as const, fontSize: "16px", fontWeight: "bold" as const }
+        return {
+          backgroundColor: "#007bff",
+          color: "#ffffff",
+          padding: "12px 24px",
+          borderRadius: "6px",
+          textAlign: "center" as const,
+          fontSize: "16px",
+          fontWeight: "bold" as const
+        }
       case "social":
         return { padding: "20px", textAlign: "center" as const }
       case "divider":
@@ -185,9 +200,9 @@ export default function EmailBuilderPage() {
   }
 
   const updateComponent = (id: string, updates: Partial<EmailComponent>) => {
-    setComponents(prev => prev.map(comp =>
-      comp.id === id ? { ...comp, ...updates } : comp
-    ))
+    setComponents(prev =>
+      prev.map(comp => (comp.id === id ? { ...comp, ...updates } : comp))
+    )
   }
 
   const deleteComponent = (id: string) => {
@@ -196,6 +211,8 @@ export default function EmailBuilderPage() {
   }
 
   const handleSendEmail = async () => {
+    if (isSending) return   // ✅ guard added
+
     if (!emailRecipient || !emailSubject) {
       toast({
         title: "Missing fields",
@@ -468,7 +485,11 @@ export default function EmailBuilderPage() {
             disabled={isSending}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            {isSending ? "Sending..." : <><Send className="h-4 w-4 mr-2" /> Send</>}
+            {isSending ? "Sending..." : (
+              <>
+                <Send className="h-4 w-4 mr-2" /> Send
+              </>
+            )}
           </Button>
         </div>
 
@@ -1029,8 +1050,12 @@ export default function EmailBuilderPage() {
                 <TabsTrigger value="properties">⚙️</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="components"><DragComponents /></TabsContent>
-              <TabsContent value="templates"><TemplateGallery onSelectTemplate={loadTemplate} /></TabsContent>
+              <TabsContent value="components">
+                <DragComponents />
+              </TabsContent>
+              <TabsContent value="templates">
+                <TemplateGallery onSelectTemplate={loadTemplate} />
+              </TabsContent>
               <TabsContent value="properties">
                 <PropertiesPanel
                   component={selectedComponentData}
