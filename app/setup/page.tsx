@@ -18,7 +18,7 @@ export default function SetupPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto p-6 max-w-4xl">
+      <div className="container mx-auto px-6 py-8 max-w-4xl">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -32,62 +32,20 @@ export default function SetupPage() {
                 <p className="text-muted-foreground">Configure real email providers to start sending actual emails</p>
               </div>
           <div className="mb-3">
-    <BackButton fallback="/dashboard" label="Back" />
+    <BackButton fallback="/dashboard" label="Back to Dashboard" forceRedirect={true} />
   </div>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-blue-600 rounded-lg">
-              <Settings className="h-6 w-6 text-white" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-600 rounded-lg shrink-0">
+                <Settings className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Email Provider Setup
+                </h1>
+                <p className="text-sm text-muted-foreground">Configure real email providers to start sending actual emails</p>
+              </div>
             </div>
-            
-            {/* Setup Page Navigation with Active Highlighting */}
-            <div className="flex items-center gap-4">
-              <NavLink
-                href="/"
-                className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
-                activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
-                inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                Home
-              </NavLink>
-              
-              <NavLink
-                href="/dashboard"
-                className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
-                activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
-                inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                Dashboard
-              </NavLink>
-              
-              <NavLink
-                href="/builder"
-                className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
-                activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
-                inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                Builder
-              </NavLink>
-              
-              <NavLink
-                href="/setup"
-                exact
-                className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
-                activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
-                inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                Setup
-              </NavLink>
-              
-              <NavLink
-                href="/status"
-                className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
-                activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
-                inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                Status
-              </NavLink>
-            </div>
-            
             <ThemeToggle />
           </div>
            
@@ -102,31 +60,11 @@ export default function SetupPage() {
 
         {/* Updated Tabs with Active Highlighting */}
         <Tabs defaultValue="sendgrid" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-            <TabsTrigger 
-              value="sendgrid"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
-            >
-              SendGrid
-            </TabsTrigger>
-            <TabsTrigger 
-              value="resend"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
-            >
-              Resend
-            </TabsTrigger>
-            <TabsTrigger 
-              value="smtp"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
-            >
-              SMTP
-            </TabsTrigger>
-            <TabsTrigger 
-              value="env"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
-            >
-              Environment
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto">
+            <TabsTrigger value="sendgrid">SendGrid</TabsTrigger>
+            <TabsTrigger value="resend">Resend</TabsTrigger>
+            <TabsTrigger value="smtp">SMTP</TabsTrigger>
+            <TabsTrigger value="env">Environment</TabsTrigger>
           </TabsList>
 
           {/* SendGrid Setup */}

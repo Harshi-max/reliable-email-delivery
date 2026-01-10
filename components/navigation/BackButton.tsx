@@ -6,16 +6,18 @@ import { ArrowLeft } from "lucide-react";
 type BackButtonProps = {
   fallback?: string;
   label?: string;
+  forceRedirect?: boolean;
 };
 
 export default function BackButton({
   fallback = "/dashboard",
   label = "Back",
+  forceRedirect = false,
 }: BackButtonProps) {
   const router = useRouter();
 
   const handleBack = () => {
-    if (window.history.length > 1) {
+    if (!forceRedirect && window.history.length > 1) {
       router.back();
     } else {
       router.push(fallback);

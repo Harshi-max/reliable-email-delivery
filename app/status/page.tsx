@@ -64,7 +64,7 @@ export default function StatusPage() {
 
   return (
     <div className="min-h-screen w-full bg-background">
-       <div className="w-full px-6">
+       <div className="w-full px-6 py-8">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -78,7 +78,7 @@ export default function StatusPage() {
                 <p className="text-muted-foreground">Real-time status of email providers and system health</p>
               </div>
           <div className="mb-3">
-    <BackButton fallback="/dashboard" label="Back" />
+    <BackButton fallback="/dashboard" label="Back to Dashboard" forceRedirect={true} />
   </div>
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-green-600 rounded-lg">
@@ -135,17 +135,17 @@ export default function StatusPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium">System Operational</span>
+                <span className="text-sm font-medium whitespace-nowrap">System Operational</span>
               </div>
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 whitespace-nowrap">
                 {configuredProviders.length} Provider{configuredProviders.length !== 1 ? "s" : ""} Configured
               </Badge>
             </div>
-            <Button onClick={checkProviderStatus} disabled={isLoading} variant="outline">
+            <Button onClick={checkProviderStatus} disabled={isLoading} variant="outline" className="w-full sm:w-auto">
               {isLoading ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
               Refresh Status
             </Button>

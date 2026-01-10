@@ -107,55 +107,7 @@ export default function LandingPage() {
                 <p className="text-sm text-muted-foreground ">Enterprise-grade reliability</p>
               </div>
             </div>
-            
-            {/* Navigation Links with Active Highlighting */}
-            <div className="flex items-center gap-4">
-              <NavLink
-                href="/"
-                exact
-                className="px-4 py-2 rounded-lg font-medium transition-all duration-200"
-                activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
-                inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                Home
-              </NavLink>
-              
-              <NavLink
-                href="/dashboard"
-                className="px-4 py-2 rounded-lg font-medium transition-all duration-200"
-                activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
-                inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                Dashboard
-              </NavLink>
-              
-              <NavLink
-                href="/setup"
-                className="px-4 py-2 rounded-lg font-medium transition-all duration-200"
-                activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
-                inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                Setup
-              </NavLink>
-              
-              <NavLink
-                href="/status"
-                className="px-4 py-2 rounded-lg font-medium transition-all duration-200"
-                activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
-                inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                Status
-              </NavLink>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <Badge className="bg-green-100 text-green-800 border-green-200 animate-pulse">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                Live Demo
-              </Badge>
-              <ThemeToggle />
-            </div>
-            <Badge className="bg-green-100 text-green-800 border-green-200 animate-pulse -ml-35 -translate-x-20   ">
+            <Badge className="bg-green-100 text-green-800 border-green-200 animate-pulse hidden sm:inline-flex">
               <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
               Live Demo
             </Badge>
