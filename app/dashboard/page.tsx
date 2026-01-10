@@ -40,6 +40,19 @@ import NavLink from "@/components/ui/nav-link"
 import CopyButton from "@/components/ui/copy-button"
 import { CharacterCounter } from "@/components/ui/character-counter"
 import toast, { Toaster } from "react-hot-toast"
+  Sparkles,
+} from "lucide-react"
+import Link from "next/link"
+import ScrollToTop from "@/components/ui/scroll-to-top"
+
+interface NormalizedErrorInfo {
+  explanation: string
+  category: string
+  severity: string
+  suggestedAction: string
+  shouldRetry: boolean
+  shouldFallback: boolean
+}
 
 interface EmailStatus {
   id: string
@@ -47,6 +60,7 @@ interface EmailStatus {
   provider?: string
   attempts: number
   lastError?: string
+  normalizedError?: NormalizedErrorInfo
   timestamp: string
   to?: string
   subject?: string
@@ -240,6 +254,7 @@ export default function EmailDashboard() {
           status: "failed",
           attempts: result.attempts || 1,
           lastError: result.error,
+          normalizedError: result.normalizedError,
           timestamp: new Date().toISOString(),
           to: email,
           subject: subject,
@@ -337,6 +352,38 @@ export default function EmailDashboard() {
   const isSendDisabled = isLoading || !email || !subject || !body || 
     subjectCharCount > subjectCharLimit || bodyCharCount > bodyCharLimit
 
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "TEMPORARY":
+        return "bg-yellow-100 text-yellow-800 border-yellow-300"
+      case "PERMANENT":
+        return "bg-red-100 text-red-800 border-red-300"
+      case "CRITICAL":
+        return "bg-purple-100 text-purple-800 border-purple-300"
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-300"
+    }
+  }
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case "AUTHENTICATION":
+        return <Shield className="h-4 w-4" />
+      case "RATE_LIMITING":
+        return <Timer className="h-4 w-4" />
+      case "NETWORK":
+        return <Server className="h-4 w-4" />
+      case "VALIDATION":
+      case "RECIPIENT":
+      case "CONTENT":
+        return <AlertTriangle className="h-4 w-4" />
+      case "CONFIGURATION":
+        return <Activity className="h-4 w-4" />
+      default:
+        return <XCircle className="h-4 w-4" />
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Toaster
@@ -416,21 +463,62 @@ export default function EmailDashboard() {
             <div className="flex items-center gap-3">
               <BackButton fallback="/" label="Back" />
               <div className="h-6 w-px bg-gray-300"></div>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-600 rounded-lg">
-                  <Mail className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    Email Dashboard
-                  </h1>
-                  <p className="text-muted-foreground">Manage and monitor your email delivery</p>
-                </div>
+              
+              {/* Dashboard Navigation with Active Highlighting */}
+              <div className="flex items-center gap-4">
+                <NavLink
+                  href="/"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Home
+                </NavLink>
+                
+                <NavLink
+                  href="/dashboard"
+                  exact
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Dashboard
+                </NavLink>
+                
+                <NavLink
+                  href="/builder"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Builder
+                </NavLink>
+                
+                <NavLink
+                  href="/setup"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Setup
+                </NavLink>
+                
+                <NavLink
+                  href="/status"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Status
+                </NavLink>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
               <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 animate-pulse">
+            
+            <div className="flex items-center gap-4">
+              <Badge className="bg-green-100 text-green-800 border-green-200 animate-pulse">
                 <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
                 Live System
               </Badge>
@@ -499,10 +587,13 @@ export default function EmailDashboard() {
           </AlertDescription>
         </Alert>
 
+        {/* Updated Tabs with Active Highlighting */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 lg:w-[400px] bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
             <TabsTrigger
               value="send"
+            <TabsTrigger 
+              value="send" 
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
             >
               <Send className="h-4 w-4 mr-2" />
@@ -510,6 +601,8 @@ export default function EmailDashboard() {
             </TabsTrigger>
             <TabsTrigger
               value="monitor"
+            <TabsTrigger 
+              value="monitor" 
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
             >
               <Activity className="h-4 w-4 mr-2" />
@@ -517,6 +610,8 @@ export default function EmailDashboard() {
             </TabsTrigger>
             <TabsTrigger
               value="providers"
+            <TabsTrigger 
+              value="providers" 
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
             >
               <Server className="h-4 w-4 mr-2" />
@@ -524,6 +619,8 @@ export default function EmailDashboard() {
             </TabsTrigger>
             <TabsTrigger
               value="logs"
+            <TabsTrigger 
+              value="logs" 
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
             >
               <Eye className="h-4 w-4 mr-2" />
@@ -853,6 +950,52 @@ export default function EmailDashboard() {
                             )}
                             <p className="text-xs text-muted-foreground mt-2">
                               📅 {new Date(status.timestamp).toLocaleString()}
+                            <p className="text-sm font-medium truncate">{status.subject}</p>
+                            <p className="text-xs text-muted-foreground truncate">{status.to}</p>
+                            {status.normalizedError ? (
+                              <div className="mt-2 p-3 bg-gradient-to-r from-red-50 to-orange-50 rounded-lg border border-red-200 space-y-2">
+                                <div className="flex items-start gap-2">
+                                  <div className="mt-0.5">
+                                    {getCategoryIcon(status.normalizedError.category)}
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <Badge className={`${getSeverityColor(status.normalizedError.severity)} text-xs`}>
+                                        {status.normalizedError.severity}
+                                      </Badge>
+                                      <Badge variant="outline" className="text-xs">
+                                        {status.normalizedError.category.replace(/_/g, ' ')}
+                                      </Badge>
+                                    </div>
+                                    <p className="text-sm font-medium text-red-900 mb-1">
+                                      {status.normalizedError.explanation}
+                                    </p>
+                                    <div className="flex items-start gap-1.5 mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                                      <Sparkles className="h-3.5 w-3.5 text-blue-600 mt-0.5 flex-shrink-0" />
+                                      <p className="text-xs text-blue-900">
+                                        <strong>Next step:</strong> {status.normalizedError.suggestedAction}
+                                      </p>
+                                    </div>
+                                    {status.lastError && (
+                                      <details className="mt-2">
+                                        <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-900">
+                                          Technical details
+                                        </summary>
+                                        <p className="text-xs text-gray-700 mt-1 p-2 bg-gray-100 rounded font-mono">
+                                          {status.lastError}
+                                        </p>
+                                      </details>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : status.lastError ? (
+                              <p className="text-xs text-red-600 mt-1 p-2 bg-red-50 rounded border">
+                                {status.lastError}
+                              </p>
+                            ) : null}
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {new Date(status.timestamp).toLocaleString()}
                             </p>
                           </div>
                         </div>
