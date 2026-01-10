@@ -11,6 +11,12 @@ import { DragComponents } from "@/components/EmailTemplateBuilder/DragComponents
 import { PropertiesPanel } from "@/components/EmailTemplateBuilder/PropertiesPanel"
 import { LivePreview } from "@/components/EmailTemplateBuilder/LivePreview"
 import { TemplateGallery } from "@/components/EmailTemplateBuilder/TemplateGallery"
+interface EmailComponent {
+  id: string
+  type: "text" | "image" | "button" | "social" | "divider"
+  content: string
+  styles: { [key: string]: any }
+}
 import { EmailComponent } from "@/components/EmailTemplateBuilder/Builder"
 import { useToast } from "@/components/ui/use-toast"
 

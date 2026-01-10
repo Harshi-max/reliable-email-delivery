@@ -33,7 +33,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import ScrollToTop from "@/components/ui/scroll-to-top"
-
+import NavLink from "@/components/ui/nav-link"
 
 interface EmailStatus {
   id: string
@@ -229,23 +229,64 @@ export default function EmailDashboard() {
             <div className="flex items-center gap-3">
               <BackButton fallback="/" label="Back" />
               <div className="h-6 w-px bg-gray-300"></div>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-600 rounded-lg">
-                  <Mail className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    Email Dashboard
-                  </h1>
-                  <p className="text-muted-foreground">Manage and monitor your email delivery</p>
-                </div>
+              
+              {/* Dashboard Navigation with Active Highlighting */}
+              <div className="flex items-center gap-4">
+                <NavLink
+                  href="/"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Home
+                </NavLink>
+                
+                <NavLink
+                  href="/dashboard"
+                  exact
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Dashboard
+                </NavLink>
+                
+                <NavLink
+                  href="/builder"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Builder
+                </NavLink>
+                
+                <NavLink
+                  href="/setup"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Setup
+                </NavLink>
+                
+                <NavLink
+                  href="/status"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Status
+                </NavLink>
               </div>
             </div>
-            <Badge className="bg-green-100 text-green-800 border-green-200 animate-pulse">
-              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-              Live System
-            </Badge>
-            <ThemeToggle />
+            
+            <div className="flex items-center gap-4">
+              <Badge className="bg-green-100 text-green-800 border-green-200 animate-pulse">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                Live System
+              </Badge>
+              <ThemeToggle />
+            </div>
           </div>
 
           {/* Quick Stats */}
@@ -310,22 +351,35 @@ export default function EmailDashboard() {
           </AlertDescription>
         </Alert>
 
+        {/* Updated Tabs with Active Highlighting */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[400px]">
-            <TabsTrigger value="send" className="flex items-center gap-2">
-              <Send className="h-4 w-4" />
+          <TabsList className="grid w-full grid-cols-4 lg:w-[400px] bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+            <TabsTrigger 
+              value="send" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
+            >
+              <Send className="h-4 w-4 mr-2" />
               Send
             </TabsTrigger>
-            <TabsTrigger value="monitor" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
+            <TabsTrigger 
+              value="monitor" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
+            >
+              <Activity className="h-4 w-4 mr-2" />
               Monitor
             </TabsTrigger>
-            <TabsTrigger value="providers" className="flex items-center gap-2">
-              <Server className="h-4 w-4" />
+            <TabsTrigger 
+              value="providers" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
+            >
+              <Server className="h-4 w-4 mr-2" />
               Providers
             </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center gap-2">
-              <Eye className="h-4 w-4" />
+            <TabsTrigger 
+              value="logs" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
+            >
+              <Eye className="h-4 w-4 mr-2" />
               Logs
             </TabsTrigger>
           </TabsList>
@@ -722,7 +776,6 @@ export default function EmailDashboard() {
         </Card>
       </div>
 
-      {/* Scroll to Top Button - ADDED HERE */}
       <ScrollToTop />
 
       <style jsx>{`
