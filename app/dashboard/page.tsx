@@ -30,6 +30,16 @@ import {
   Timer,
   ArrowLeft,
   Palette,
+  Copy,
+  AlertCircle,
+  Info,
+} from "lucide-react"
+import Link from "next/link"
+import ScrollToTop from "@/components/ui/scroll-to-top"
+import NavLink from "@/components/ui/nav-link"
+import CopyButton from "@/components/ui/copy-button"
+import { CharacterCounter } from "@/components/ui/character-counter"
+import toast, { Toaster } from "react-hot-toast"
   Sparkles,
 } from "lucide-react"
 import Link from "next/link"
@@ -78,22 +88,56 @@ export default function EmailDashboard() {
   const [subject, setSubject] = useState("")
   const [body, setBody] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [emailStatuses, setEmailStatuses] = useState<EmailStatus[]>([])
+  const [emailStatuses, setEmailStatuses] = useState<EmailStatus[]>([
+    {
+      id: "task_001",
+      status: "sent",
+      provider: "Resend (Primary)",
+      attempts: 1,
+      timestamp: new Date(Date.now() - 300000).toISOString(),
+      to: "user@example.com",
+      subject: "Welcome to Our Platform!"
+    },
+    {
+      id: "task_002",
+      status: "failed",
+      provider: "MockProviderA",
+      attempts: 3,
+      lastError: "Connection timeout",
+      timestamp: new Date(Date.now() - 600000).toISOString(),
+      to: "client@company.com",
+      subject: "Important Update"
+    },
+    {
+      id: "task_003",
+      status: "retrying",
+      provider: "Resend (Primary)",
+      attempts: 2,
+      timestamp: new Date(Date.now() - 120000).toISOString(),
+      to: "support@domain.com",
+      subject: "Service Maintenance Notice"
+    }
+  ])
   const [providers, setProviders] = useState<ProviderStatus[]>([])
   const [metrics, setMetrics] = useState<SystemMetrics>({
-    totalSent: 0,
-    totalFailed: 0,
-    successRate: 0,
-    avgResponseTime: 0,
-    queueLength: 0,
+    totalSent: 145,
+    totalFailed: 8,
+    successRate: 94.7,
+    avgResponseTime: 175,
+    queueLength: 2,
     rateLimitRemaining: 100,
   })
   const [activeTab, setActiveTab] = useState("send")
+  
+  // Character counter states
+  const [subjectCharCount, setSubjectCharCount] = useState(0)
+  const [bodyCharCount, setBodyCharCount] = useState(0)
+  const [bodyCharLimit] = useState(5000)
+  const [subjectCharLimit] = useState(100)
 
   // Simulate real-time updates
   useEffect(() => {
     const interval = setInterval(() => {
-      // Update provider status
       setProviders([
         {
           name: "Resend (Primary)",
@@ -111,19 +155,53 @@ export default function EmailDashboard() {
         },
       ])
 
-      // Update metrics
       setMetrics((prev) => ({
         ...prev,
         rateLimitRemaining: Math.max(0, prev.rateLimitRemaining - Math.random() * 2),
         avgResponseTime: 175 + Math.random() * 50,
       }))
+
+      if (Math.random() > 0.7) {
+        const newStatus: EmailStatus = {
+          id: `task_${Date.now()}`,
+          status: Math.random() > 0.2 ? "sent" : "failed",
+          provider: Math.random() > 0.5 ? "Resend (Primary)" : "MockProviderA",
+          attempts: Math.floor(Math.random() * 3) + 1,
+          timestamp: new Date().toISOString(),
+          to: `user${Math.floor(Math.random() * 100)}@example.com`,
+          subject: `Test Email ${Math.floor(Math.random() * 1000)}`,
+        }
+        setEmailStatuses((prev) => [newStatus, ...prev.slice(0, 19)])
+      }
     }, 3000)
 
     return () => clearInterval(interval)
   }, [])
 
   const handleSendEmail = async () => {
-    if (!email || !subject || !body) return
+    if (!email || !subject || !body) {
+      toast.error("Please fill all fields", {
+        duration: 3000,
+        position: "bottom-right",
+      })
+      return
+    }
+    
+    if (subjectCharCount > subjectCharLimit) {
+      toast.error(`Subject exceeds ${subjectCharLimit} characters`, {
+        duration: 3000,
+        position: "bottom-right",
+      })
+      return
+    }
+    
+    if (bodyCharCount > bodyCharLimit) {
+      toast.error(`Body exceeds ${bodyCharLimit} characters`, {
+        duration: 3000,
+        position: "bottom-right",
+      })
+      return
+    }
 
     setIsLoading(true)
 
@@ -152,19 +230,24 @@ export default function EmailDashboard() {
           to: email,
           subject: subject,
         }
-        setEmailStatuses((prev) => [newStatus, ...prev.slice(0, 19)]) // Keep last 20
+        setEmailStatuses((prev) => [newStatus, ...prev.slice(0, 19)])
 
-        // Update metrics
         setMetrics((prev) => ({
           ...prev,
           totalSent: prev.totalSent + 1,
           successRate: ((prev.totalSent + 1) / (prev.totalSent + prev.totalFailed + 1)) * 100,
         }))
 
-        // Clear form
         setEmail("")
         setSubject("")
         setBody("")
+        setSubjectCharCount(0)
+        setBodyCharCount(0)
+
+        toast.success("Email sent successfully!", {
+          duration: 3000,
+          position: "bottom-right",
+        })
       } else {
         const failedStatus: EmailStatus = {
           id: result.id || Date.now().toString(),
@@ -178,15 +261,23 @@ export default function EmailDashboard() {
         }
         setEmailStatuses((prev) => [failedStatus, ...prev.slice(0, 19)])
 
-        // Update metrics
         setMetrics((prev) => ({
           ...prev,
           totalFailed: prev.totalFailed + 1,
           successRate: (prev.totalSent / (prev.totalSent + prev.totalFailed + 1)) * 100,
         }))
+
+        toast.error(`Failed to send email: ${result.error}`, {
+          duration: 4000,
+          position: "bottom-right",
+        })
       }
     } catch (error) {
       console.error("Failed to send email:", error)
+      toast.error("Network error. Please try again.", {
+        duration: 4000,
+        position: "bottom-right",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -231,6 +322,36 @@ export default function EmailDashboard() {
     }
   }
 
+  const handleCopyTaskId = (id: string, subject?: string) => {
+    navigator.clipboard.writeText(id)
+    toast.success(`Copied ${subject ? `"${subject}" ` : ""}Task ID`, {
+      duration: 2000,
+      position: "bottom-right",
+      icon: "📋",
+    })
+  }
+
+  const handleCopyLogEntry = (logText: string) => {
+    navigator.clipboard.writeText(logText)
+    toast.success("Log entry copied!", {
+      duration: 2000,
+      position: "bottom-right",
+      icon: "📋",
+    })
+  }
+
+  const handleCopyEmail = (email: string) => {
+    navigator.clipboard.writeText(email)
+    toast.success("Email address copied!", {
+      duration: 2000,
+      position: "bottom-right",
+      icon: "📧",
+    })
+  }
+
+  const isSendDisabled = isLoading || !email || !subject || !body || 
+    subjectCharCount > subjectCharLimit || bodyCharCount > bodyCharLimit
+
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case "TEMPORARY":
@@ -264,6 +385,76 @@ export default function EmailDashboard() {
   }
 
   return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <Toaster
+        toastOptions={{
+          className: "dark:bg-gray-800 dark:text-white",
+          style: {
+            background: "var(--background)",
+            color: "var(--foreground)",
+            border: "1px solid var(--border)",
+          },
+        }}
+      />
+
+      <div className="container mx-auto p-6 max-w-7xl">
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Link href="/">
+                <Button variant="ghost" size="sm" className="hover:bg-white/80 dark:hover:bg-gray-800">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Home
+                </Button>
+              </Link>
+              <div className="h-6 w-px bg-gray-300 dark:bg-gray-700"></div>
+
+              <div className="flex items-center gap-4">
+                <NavLink
+                  href="/"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Home
+                </NavLink>
+
+                <NavLink
+                  href="/dashboard"
+                  exact
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Dashboard
+                </NavLink>
+
+                <NavLink
+                  href="/builder"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Builder
+                </NavLink>
+
+                <NavLink
+                  href="/setup"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Setup
+                </NavLink>
+
+                <NavLink
+                  href="/status"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Status
+                </NavLink>
     <div className="min-h-screen w-full bg-background">
        <div className="w-full px-6">
         {/* Header */}
@@ -322,6 +513,9 @@ export default function EmailDashboard() {
                 </NavLink>
               </div>
             </div>
+
+            <div className="flex items-center gap-4">
+              <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 animate-pulse">
             
             <div className="flex items-center gap-4">
               <Badge className="bg-green-100 text-green-800 border-green-200 animate-pulse">
@@ -332,9 +526,8 @@ export default function EmailDashboard() {
             </div>
           </div>
 
-          {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <Card className="border-l-4 border-l-green-500 animate-fade-in">
+            <Card className="border-l-4 border-l-green-500 animate-fade-in dark:bg-gray-900">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -346,7 +539,7 @@ export default function EmailDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-blue-500 animate-fade-in delay-100">
+            <Card className="border-l-4 border-l-blue-500 animate-fade-in delay-100 dark:bg-gray-900">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -358,7 +551,7 @@ export default function EmailDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-purple-500 animate-fade-in delay-200">
+            <Card className="border-l-4 border-l-purple-500 animate-fade-in delay-200 dark:bg-gray-900">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -370,7 +563,7 @@ export default function EmailDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-orange-500 animate-fade-in delay-300">
+            <Card className="border-l-4 border-l-orange-500 animate-fade-in delay-300 dark:bg-gray-900">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -384,9 +577,9 @@ export default function EmailDashboard() {
           </div>
         </div>
 
-        <Alert className="mb-6 border-green-200 bg-green-50 animate-fade-in delay-400">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
+        <Alert className="mb-6 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/30 animate-fade-in delay-400">
+          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <AlertDescription className="text-green-800 dark:text-green-300">
             <strong>✅ Resend Configured:</strong> Real emails will be sent using your Resend API key.
             <Link href="/status" className="underline font-medium ml-2">
               View system status →
@@ -397,6 +590,8 @@ export default function EmailDashboard() {
         {/* Updated Tabs with Active Highlighting */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 lg:w-[400px] bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+            <TabsTrigger
+              value="send"
             <TabsTrigger 
               value="send" 
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
@@ -404,6 +599,8 @@ export default function EmailDashboard() {
               <Send className="h-4 w-4 mr-2" />
               Send
             </TabsTrigger>
+            <TabsTrigger
+              value="monitor"
             <TabsTrigger 
               value="monitor" 
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
@@ -411,6 +608,8 @@ export default function EmailDashboard() {
               <Activity className="h-4 w-4 mr-2" />
               Monitor
             </TabsTrigger>
+            <TabsTrigger
+              value="providers"
             <TabsTrigger 
               value="providers" 
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
@@ -418,6 +617,8 @@ export default function EmailDashboard() {
               <Server className="h-4 w-4 mr-2" />
               Providers
             </TabsTrigger>
+            <TabsTrigger
+              value="logs"
             <TabsTrigger 
               value="logs" 
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
@@ -427,11 +628,10 @@ export default function EmailDashboard() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Send Email Tab */}
           <TabsContent value="send" className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
-                <Card className="shadow-lg">
+                <Card className="shadow-lg dark:bg-gray-900">
                   <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-t-lg">
                     <CardTitle className="flex items-center gap-2">
                       <Mail className="h-5 w-5" />
@@ -445,21 +645,22 @@ export default function EmailDashboard() {
                     <div className="mb-4">
                       <Link href="/builder">
                         <Button
-                          className="w-full h-12 border-2 border-dashed border-blue-300 hover:border-blue-500 hover:bg-blue-50 transition-all bg-gradient-to-r from-blue-50 to-purple-50"
+                          className="w-full h-12 border-2 border-dashed border-blue-300 hover:border-blue-500 hover:bg-blue-50 dark:border-blue-700 dark:hover:border-blue-600 dark:hover:bg-blue-900/30 transition-all bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20"
                         >
-                          <Palette className="mr-2 h-5 w-5 text-blue-500" />
-                          <span className="text-blue-600 font-medium">Design Email Template</span>
+                          <Palette className="mr-2 h-5 w-5 text-blue-500 dark:text-blue-400" />
+                          <span className="text-blue-600 dark:text-blue-300 font-medium">Design Email Template</span>
                         </Button>
                       </Link>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">Create beautiful emails with drag-and-drop builder</p>
                       <p className="text-xs text-red-500 mt-2 text-center">Create beautiful emails with drag-and-drop builder</p>
                     </div>
-                    
+
                     <div className="relative">
                       <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
+                        <span className="w-full border-t dark:border-gray-700" />
                       </div>
                       <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-white px-2 text-muted-foreground">Or send plain text</span>
+                        <span className="bg-white dark:bg-gray-900 px-2 text-muted-foreground">Or send plain text</span>
                       </div>
                     </div>
 
@@ -467,44 +668,122 @@ export default function EmailDashboard() {
                       <Label htmlFor="email" className="text-sm font-medium">
                         To Email Address
                       </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="recipient@example.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="h-11"
-                      />
+                      <div className="flex gap-2">
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="recipient@example.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="h-11 flex-1"
+                        />
+                        {email && (
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleCopyEmail(email)}
+                            className="h-11 w-11"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="subject" className="text-sm font-medium">
-                        Subject Line
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="subject" className="text-sm font-medium">
+                          Subject Line
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          {subjectCharCount > subjectCharLimit && (
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                          )}
+                          <CharacterCounter 
+                            current={subjectCharCount} 
+                            max={subjectCharLimit}
+                            label="Subject line character count"
+                          />
+                        </div>
+                      </div>
                       <Input
                         id="subject"
                         placeholder="Enter your email subject"
                         value={subject}
-                        onChange={(e) => setSubject(e.target.value)}
+                        onChange={(e) => {
+                          setSubject(e.target.value)
+                          setSubjectCharCount(e.target.value.length)
+                        }}
                         className="h-11"
+                        maxLength={subjectCharLimit}
                       />
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Recommended: 6-10 words for better open rates
+                      </p>
                     </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="body" className="text-sm font-medium">
-                        Message Body
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="body" className="text-sm font-medium">
+                          Message Body
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          {bodyCharCount > bodyCharLimit && (
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                          )}
+                          <CharacterCounter 
+                            current={bodyCharCount} 
+                            max={bodyCharLimit}
+                            label="Message body character count"
+                          />
+                        </div>
+                      </div>
                       <Textarea
                         id="body"
                         placeholder="Write your email message here..."
                         value={body}
-                        onChange={(e) => setBody(e.target.value)}
+                        onChange={(e) => {
+                          setBody(e.target.value)
+                          setBodyCharCount(e.target.value.length)
+                        }}
                         rows={6}
-                        className="resize-none"
+                        className="resize-none dark:bg-gray-800"
+                        maxLength={bodyCharLimit}
                       />
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Use paragraphs and bullet points for better readability
+                      </p>
                     </div>
+
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                            Character Limit Summary
+                          </p>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs text-blue-700 dark:text-blue-400">Subject</p>
+                              <p className={`text-sm font-medium ${subjectCharCount > subjectCharLimit ? 'text-red-600' : 'text-blue-900 dark:text-blue-300'}`}>
+                                {subjectCharCount} / {subjectCharLimit}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-blue-700 dark:text-blue-400">Body</p>
+                              <p className={`text-sm font-medium ${bodyCharCount > bodyCharLimit ? 'text-red-600' : 'text-blue-900 dark:text-blue-300'}`}>
+                                {bodyCharCount} / {bodyCharLimit}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     <Button
                       onClick={handleSendEmail}
-                      disabled={isLoading || !email || !subject || !body}
-                      className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200"
+                      disabled={isSendDisabled}
+                      className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >
                       {isLoading ? (
                         <>
@@ -522,8 +801,8 @@ export default function EmailDashboard() {
                 </Card>
               </div>
 
-              <div>
-                <Card className="shadow-lg">
+              <div className="space-y-6">
+                <Card className="shadow-lg dark:bg-gray-900">
                   <CardHeader>
                     <CardTitle className="text-lg">Rate Limiting</CardTitle>
                     <CardDescription>Current usage and limits</CardDescription>
@@ -536,7 +815,7 @@ export default function EmailDashboard() {
                       </div>
                       <Progress value={metrics.rateLimitRemaining} className="h-2" />
                     </div>
-                    <Alert>
+                    <Alert className="dark:bg-gray-800">
                       <Shield className="h-4 w-4" />
                       <AlertDescription>
                         Rate limiting protects against abuse and ensures fair usage across all users.
@@ -544,25 +823,58 @@ export default function EmailDashboard() {
                     </Alert>
                   </CardContent>
                 </Card>
+
+                <Card className="shadow-lg dark:bg-gray-900">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Character Guidelines</CardTitle>
+                    <CardDescription>Best practices for email composition</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">Subject Line</span>
+                          <Badge variant="outline" className="text-xs">
+                            Max {subjectCharLimit}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Keep under 60 characters for mobile display. Use action-oriented language.
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">Message Body</span>
+                          <Badge variant="outline" className="text-xs">
+                            Max {bodyCharLimit}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Longer emails may be truncated by some email clients. Be concise and clear.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </TabsContent>
 
-          {/* Monitor Tab */}
           <TabsContent value="monitor" className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="shadow-lg">
+              <Card className="shadow-lg dark:bg-gray-900">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Activity className="h-5 w-5 text-blue-500" />
                     Recent Activity
                   </CardTitle>
-                  <CardDescription>Real-time email sending status</CardDescription>
+                  <CardDescription>Real-time email sending status with task IDs</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {emailStatuses.length === 0 ? (
                     <div className="text-center py-12">
-                      <Mail className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <Mail className="h-12 w-12 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
                       <p className="text-muted-foreground">No emails sent yet</p>
                       <p className="text-sm text-muted-foreground">Send your first email to see activity here</p>
                     </div>
@@ -571,7 +883,7 @@ export default function EmailDashboard() {
                       {emailStatuses.map((status, index) => (
                         <div
                           key={status.id}
-                          className="flex items-start gap-3 p-4 border rounded-lg hover:bg-gray-50 transition-colors animate-fade-in"
+                          className="flex items-start gap-3 p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors animate-fade-in group"
                           style={{ animationDelay: `${index * 100}ms` }}
                         >
                           <div className="mt-1">{getStatusIcon(status.status)}</div>
@@ -588,7 +900,56 @@ export default function EmailDashboard() {
                               <span className="text-xs text-muted-foreground">
                                 {status.attempts} attempt{status.attempts !== 1 ? "s" : ""}
                               </span>
+
+                              <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                                <CopyButton
+                                  text={status.id}
+                                  size="sm"
+                                />
+                              </div>
                             </div>
+
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-sm font-medium truncate flex-1">{status.subject}</p>
+                              {status.subject && (
+                                <span className="text-xs text-gray-500">
+                                  {status.subject.length} chars
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">ID:</span>
+                                <code className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded font-mono text-gray-700 dark:text-gray-300">
+                                  {status.id.slice(0, 12)}...
+                                </code>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground shrink-0">
+                                  {status.to}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => status.to && handleCopyEmail(status.to)}
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            {status.lastError && (
+                              <div className="flex items-start gap-2 mt-2">
+                                <AlertTriangle className="h-3 w-3 text-red-500 mt-0.5 flex-shrink-0" />
+                                <p className="text-xs text-red-600 dark:text-red-400 p-2 bg-red-50 dark:bg-red-900/30 rounded border border-red-200 dark:border-red-800 flex-1">
+                                  {status.lastError}
+                                </p>
+                              </div>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-2">
+                              📅 {new Date(status.timestamp).toLocaleString()}
                             <p className="text-sm font-medium truncate">{status.subject}</p>
                             <p className="text-xs text-muted-foreground truncate">{status.to}</p>
                             {status.normalizedError ? (
@@ -644,7 +1005,7 @@ export default function EmailDashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="shadow-lg">
+              <Card className="shadow-lg dark:bg-gray-900">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-green-500" />
@@ -654,13 +1015,13 @@ export default function EmailDashboard() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                      <p className="text-2xl font-bold text-green-600">{metrics.totalSent}</p>
-                      <p className="text-sm text-green-700">Emails Sent</p>
+                    <div className="text-center p-4 bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-800">
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">{metrics.totalSent}</p>
+                      <p className="text-sm text-green-700 dark:text-green-300">Emails Sent</p>
                     </div>
-                    <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
-                      <p className="text-2xl font-bold text-red-600">{metrics.totalFailed}</p>
-                      <p className="text-sm text-red-700">Failed Attempts</p>
+                    <div className="text-center p-4 bg-red-50 dark:bg-red-900/30 rounded-lg border border-red-200 dark:border-red-800">
+                      <p className="text-2xl font-bold text-red-600 dark:text-red-400">{metrics.totalFailed}</p>
+                      <p className="text-sm text-red-700 dark:text-red-300">Failed Attempts</p>
                     </div>
                   </div>
 
@@ -687,13 +1048,12 @@ export default function EmailDashboard() {
             </div>
           </TabsContent>
 
-          {/* Providers Tab */}
           <TabsContent value="providers" className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {providers.map((provider, index) => (
                 <Card
                   key={provider.name}
-                  className="shadow-lg animate-fade-in"
+                  className="shadow-lg animate-fade-in dark:bg-gray-900"
                   style={{ animationDelay: `${index * 200}ms` }}
                 >
                   <CardHeader>
@@ -739,7 +1099,7 @@ export default function EmailDashboard() {
                     )}
 
                     {provider.circuitBreakerState === "OPEN" && (
-                      <Alert>
+                      <Alert className="dark:bg-gray-800">
                         <AlertTriangle className="h-4 w-4" />
                         <AlertDescription>
                           Circuit breaker is open. Provider is temporarily disabled due to failures.
@@ -752,9 +1112,8 @@ export default function EmailDashboard() {
             </div>
           </TabsContent>
 
-          {/* Logs Tab */}
           <TabsContent value="logs" className="space-y-6 animate-fade-in">
-            <Card className="shadow-lg">
+            <Card className="shadow-lg dark:bg-gray-900">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Eye className="h-5 w-5" />
@@ -765,18 +1124,61 @@ export default function EmailDashboard() {
               <CardContent>
                 <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm max-h-96 overflow-y-auto">
                   <div className="space-y-1">
-                    <div>[{new Date().toISOString()}] INFO: Email service initialized</div>
-                    <div>[{new Date().toISOString()}] INFO: Circuit breakers configured</div>
-                    <div>[{new Date().toISOString()}] INFO: Rate limiter active (100 req/min)</div>
-                    <div>[{new Date().toISOString()}] INFO: Queue processor started</div>
-                    <div>[{new Date().toISOString()}] INFO: Providers health check completed</div>
-                    {emailStatuses.slice(0, 10).map((status, index) => (
-                      <div key={index} className={status.status === "failed" ? "text-red-400" : "text-green-400"}>
-                        [{status.timestamp}] {status.status === "failed" ? "ERROR" : "INFO"}: Email {status.status} to{" "}
-                        {status.to} via {status.provider || "unknown"}
-                        (attempts: {status.attempts})
-                      </div>
-                    ))}
+                    <div className="group flex items-center justify-between hover:bg-gray-800/50 px-2 py-1 rounded">
+                      <div>[{new Date().toISOString()}] INFO: Email service initialized</div>
+                      <CopyButton
+                        text={`[${new Date().toISOString()}] INFO: Email service initialized`}
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100"
+                      />
+                    </div>
+                    <div className="group flex items-center justify-between hover:bg-gray-800/50 px-2 py-1 rounded">
+                      <div>[{new Date().toISOString()}] INFO: Circuit breakers configured</div>
+                      <CopyButton
+                        text={`[${new Date().toISOString()}] INFO: Circuit breakers configured`}
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100"
+                      />
+                    </div>
+                    <div className="group flex items-center justify-between hover:bg-gray-800/50 px-2 py-1 rounded">
+                      <div>[{new Date().toISOString()}] INFO: Rate limiter active (100 req/min)</div>
+                      <CopyButton
+                        text={`[${new Date().toISOString()}] INFO: Rate limiter active (100 req/min)`}
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100"
+                      />
+                    </div>
+                    <div className="group flex items-center justify-between hover:bg-gray-800/50 px-2 py-1 rounded">
+                      <div>[{new Date().toISOString()}] INFO: Queue processor started</div>
+                      <CopyButton
+                        text={`[${new Date().toISOString()}] INFO: Queue processor started`}
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100"
+                      />
+                    </div>
+                    <div className="group flex items-center justify-between hover:bg-gray-800/50 px-2 py-1 rounded">
+                      <div>[{new Date().toISOString()}] INFO: Providers health check completed</div>
+                      <CopyButton
+                        text={`[${new Date().toISOString()}] INFO: Providers health check completed`}
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100"
+                      />
+                    </div>
+                    {emailStatuses.slice(0, 10).map((status, index) => {
+                      const logText = `[${status.timestamp}] ${status.status === "failed" ? "ERROR" : "INFO"}: Email ${status.status} to ${status.to} via ${status.provider || "unknown"} (attempts: ${status.attempts})`
+                      return (
+                        <div key={index} className="group flex items-center justify-between hover:bg-gray-800/50 px-2 py-1 rounded">
+                          <div className={status.status === "failed" ? "text-red-400" : "text-green-400"}>
+                            {logText}
+                          </div>
+                          <CopyButton
+                            text={logText}
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100"
+                          />
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               </CardContent>
@@ -784,10 +1186,9 @@ export default function EmailDashboard() {
           </TabsContent>
         </Tabs>
 
-        {/* Features Overview */}
-        <Card className="mt-8 shadow-lg animate-fade-in delay-500">
-          <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 dark:text-white">
-            <CardTitle className="flex items-center gap-2 dark:text-white">
+        <Card className="mt-8 shadow-lg animate-fade-in delay-500 dark:bg-gray-900">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+            <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
               Enterprise Features
             </CardTitle>
@@ -797,7 +1198,7 @@ export default function EmailDashboard() {
           </CardHeader>
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="flex items-start gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow">
+              <div className="flex items-start gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow dark:border-gray-800">
                 <RefreshCw className="h-8 w-8 text-blue-500 mt-1" />
                 <div>
                   <h3 className="font-semibold mb-2">Intelligent Retry Logic</h3>
@@ -806,7 +1207,7 @@ export default function EmailDashboard() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow">
+              <div className="flex items-start gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow dark:border-gray-800">
                 <Server className="h-8 w-8 text-green-500 mt-1" />
                 <div>
                   <h3 className="font-semibold mb-2">Provider Fallback</h3>
@@ -815,7 +1216,7 @@ export default function EmailDashboard() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow">
+              <div className="flex items-start gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow dark:border-gray-800">
                 <Shield className="h-8 w-8 text-purple-500 mt-1" />
                 <div>
                   <h3 className="font-semibold mb-2">Idempotency Protection</h3>
@@ -824,25 +1225,25 @@ export default function EmailDashboard() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow">
+              <div className="flex items-start gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow dark:border-gray-800">
                 <Activity className="h-8 w-8 text-red-500 mt-1" />
                 <div>
                   <h3 className="font-semibold mb-2">Circuit Breaker</h3>
                   <p className="text-sm text-muted-foreground">
-                    Prevents cascading failures with automatic recovery mechanisms
+                    Protects downstream services by temporarily disabling failing providers
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow">
+              <div className="flex items-start gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow dark:border-gray-800">
                 <Timer className="h-8 w-8 text-orange-500 mt-1" />
                 <div>
                   <h3 className="font-semibold mb-2">Rate Limiting</h3>
                   <p className="text-sm text-muted-foreground">
-                    Token bucket algorithm ensures fair usage and prevents abuse
+                    Configurable rate limits to protect both your system and email providers
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow">
+              <div className="flex items-start gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow dark:border-gray-800">
                 <Eye className="h-8 w-8 text-indigo-500 mt-1" />
                 <div>
                   <h3 className="font-semibold mb-2">Real-time Monitoring</h3>
