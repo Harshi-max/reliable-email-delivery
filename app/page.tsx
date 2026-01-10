@@ -312,8 +312,6 @@ export default function LandingPage() {
 
       </div>
 
-      <ScrollToTop />
-
       <style jsx>{`
         @keyframes fade-in {
           from {
