@@ -20,7 +20,6 @@ import {
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
 import ScrollToTop from "@/components/ui/scroll-to-top"
-
 export default function LandingPage() {
   const [isHovered, setIsHovered] = useState(false)
 
@@ -260,25 +259,9 @@ export default function LandingPage() {
         </section>
 
         {/* Footer */}
-        <footer className="container mx-auto px-6 py-12 text-center">
-          <div className="max-w-2xl mx-auto">
-            <p className="text-muted-foreground mb-4">
-              Built with modern technologies and enterprise-grade reliability patterns
-            </p>
-            <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
-              <span>TypeScript</span>
-              <span>•</span>
-              <span>Next.js</span>
-              <span>•</span>
-              <span>Resend API</span>
-              <span>•</span>
-              <span>Tailwind CSS</span>
-            </div>
-          </div>
-        </footer>
+
       </div>
 
-      {/* Add ScrollToTop here */}
       <ScrollToTop />
 
       <style jsx>{`

@@ -7,6 +7,7 @@ import { RateLimiter } from "./utils/RateLimiter"
 import { CircuitBreaker } from "./utils/CircuitBreaker"
 import { IdempotencyManager } from "./utils/IdempotencyManager"
 import { Logger } from "./utils/Logger"
+import { ErrorNormalizer } from "./utils/ErrorNormalizer"
 
 // ✅ ADDED: Provider health history tracking
 import { providerHealthHistoryStore } from "../monitoring/providerHealthHistory"
@@ -101,10 +102,19 @@ export class RealEmailService {
     if (!this.rateLimiter.allowRequest()) {
       const error = "Rate limit exceeded"
       this.logger.warn(error, { requestId })
+      const normalized = ErrorNormalizer.normalize(error)
       const response: EmailResponse = {
         id: requestId,
         status: "failed",
         error,
+        normalizedError: {
+          explanation: normalized.explanation,
+          category: normalized.category,
+          severity: normalized.severity,
+          suggestedAction: normalized.suggestedAction,
+          shouldRetry: normalized.shouldRetry,
+          shouldFallback: normalized.shouldFallback,
+        },
         attempts: 0,
         timestamp: new Date(),
       }
@@ -123,10 +133,19 @@ export class RealEmailService {
         error: errorMessage,
       })
 
+      const normalized = ErrorNormalizer.normalize(error instanceof Error ? error : errorMessage)
       const response: EmailResponse = {
         id: requestId,
         status: "failed",
         error: errorMessage,
+        normalizedError: {
+          explanation: normalized.explanation,
+          category: normalized.category,
+          severity: normalized.severity,
+          suggestedAction: normalized.suggestedAction,
+          shouldRetry: normalized.shouldRetry,
+          shouldFallback: normalized.shouldFallback,
+        },
         attempts: this.config.retry.maxAttempts,
         timestamp: new Date(),
       }

@@ -7,6 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Mail, Settings, Key, Server, AlertTriangle, CheckCircle, Copy, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
+import NavLink from "@/components/ui/nav-link"
+import ScrollToTop from "@/components/ui/scroll-to-top"
+
 import BackButton from "@/components/navigation/BackButton"
 export default function SetupPage() {
   const copyToClipboard = (text: string) => {
@@ -17,6 +20,17 @@ export default function SetupPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="container mx-auto px-6 py-8 max-w-4xl">
         <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-600 rounded-lg">
+                <Settings className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Email Provider Setup
+                </h1>
+                <p className="text-muted-foreground">Configure real email providers to start sending actual emails</p>
+              </div>
           <div className="mb-3">
     <BackButton fallback="/dashboard" label="Back to Dashboard" forceRedirect={true} />
   </div>
@@ -44,6 +58,7 @@ export default function SetupPage() {
           </Alert>
         </div>
 
+        {/* Updated Tabs with Active Highlighting */}
         <Tabs defaultValue="sendgrid" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto">
             <TabsTrigger value="sendgrid">SendGrid</TabsTrigger>
@@ -286,6 +301,8 @@ export default function SetupPage() {
           </CardContent>
         </Card>
       </div>
+      
+      <ScrollToTop />
     </div>
   )
 }

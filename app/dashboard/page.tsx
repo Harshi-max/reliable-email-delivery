@@ -30,10 +30,19 @@ import {
   Timer,
   ArrowLeft,
   Palette,
+  Sparkles,
 } from "lucide-react"
 import Link from "next/link"
 import ScrollToTop from "@/components/ui/scroll-to-top"
 
+interface NormalizedErrorInfo {
+  explanation: string
+  category: string
+  severity: string
+  suggestedAction: string
+  shouldRetry: boolean
+  shouldFallback: boolean
+}
 
 interface EmailStatus {
   id: string
@@ -41,6 +50,7 @@ interface EmailStatus {
   provider?: string
   attempts: number
   lastError?: string
+  normalizedError?: NormalizedErrorInfo
   timestamp: string
   to?: string
   subject?: string
@@ -161,6 +171,7 @@ export default function EmailDashboard() {
           status: "failed",
           attempts: result.attempts || 1,
           lastError: result.error,
+          normalizedError: result.normalizedError,
           timestamp: new Date().toISOString(),
           to: email,
           subject: subject,
@@ -217,6 +228,38 @@ export default function EmailDashboard() {
         return "text-yellow-600"
       default:
         return "text-gray-600"
+    }
+  }
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "TEMPORARY":
+        return "bg-yellow-100 text-yellow-800 border-yellow-300"
+      case "PERMANENT":
+        return "bg-red-100 text-red-800 border-red-300"
+      case "CRITICAL":
+        return "bg-purple-100 text-purple-800 border-purple-300"
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-300"
+    }
+  }
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case "AUTHENTICATION":
+        return <Shield className="h-4 w-4" />
+      case "RATE_LIMITING":
+        return <Timer className="h-4 w-4" />
+      case "NETWORK":
+        return <Server className="h-4 w-4" />
+      case "VALIDATION":
+      case "RECIPIENT":
+      case "CONTENT":
+        return <AlertTriangle className="h-4 w-4" />
+      case "CONFIGURATION":
+        return <Activity className="h-4 w-4" />
+      default:
+        return <XCircle className="h-4 w-4" />
     }
   }
 
@@ -312,22 +355,32 @@ export default function EmailDashboard() {
           </AlertDescription>
         </Alert>
 
+        {/* Updated Tabs with Active Highlighting */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-[400px] h-auto">
             <TabsTrigger value="send" className="flex items-center gap-2">
               <Send className="h-4 w-4" />
               Send
             </TabsTrigger>
-            <TabsTrigger value="monitor" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
+            <TabsTrigger 
+              value="monitor" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
+            >
+              <Activity className="h-4 w-4 mr-2" />
               Monitor
             </TabsTrigger>
-            <TabsTrigger value="providers" className="flex items-center gap-2">
-              <Server className="h-4 w-4" />
+            <TabsTrigger 
+              value="providers" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
+            >
+              <Server className="h-4 w-4 mr-2" />
               Providers
             </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center gap-2">
-              <Eye className="h-4 w-4" />
+            <TabsTrigger 
+              value="logs" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
+            >
+              <Eye className="h-4 w-4 mr-2" />
               Logs
             </TabsTrigger>
           </TabsList>
@@ -496,11 +549,48 @@ export default function EmailDashboard() {
                             </div>
                             <p className="text-sm font-medium truncate">{status.subject}</p>
                             <p className="text-xs text-muted-foreground truncate">{status.to}</p>
-                            {status.lastError && (
+                            {status.normalizedError ? (
+                              <div className="mt-2 p-3 bg-gradient-to-r from-red-50 to-orange-50 rounded-lg border border-red-200 space-y-2">
+                                <div className="flex items-start gap-2">
+                                  <div className="mt-0.5">
+                                    {getCategoryIcon(status.normalizedError.category)}
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <Badge className={`${getSeverityColor(status.normalizedError.severity)} text-xs`}>
+                                        {status.normalizedError.severity}
+                                      </Badge>
+                                      <Badge variant="outline" className="text-xs">
+                                        {status.normalizedError.category.replace(/_/g, ' ')}
+                                      </Badge>
+                                    </div>
+                                    <p className="text-sm font-medium text-red-900 mb-1">
+                                      {status.normalizedError.explanation}
+                                    </p>
+                                    <div className="flex items-start gap-1.5 mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                                      <Sparkles className="h-3.5 w-3.5 text-blue-600 mt-0.5 flex-shrink-0" />
+                                      <p className="text-xs text-blue-900">
+                                        <strong>Next step:</strong> {status.normalizedError.suggestedAction}
+                                      </p>
+                                    </div>
+                                    {status.lastError && (
+                                      <details className="mt-2">
+                                        <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-900">
+                                          Technical details
+                                        </summary>
+                                        <p className="text-xs text-gray-700 mt-1 p-2 bg-gray-100 rounded font-mono">
+                                          {status.lastError}
+                                        </p>
+                                      </details>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : status.lastError ? (
                               <p className="text-xs text-red-600 mt-1 p-2 bg-red-50 rounded border">
                                 {status.lastError}
                               </p>
-                            )}
+                            ) : null}
                             <p className="text-xs text-muted-foreground mt-1">
                               {new Date(status.timestamp).toLocaleString()}
                             </p>
@@ -724,7 +814,6 @@ export default function EmailDashboard() {
         </Card>
       </div>
 
-      {/* Scroll to Top Button - ADDED HERE */}
       <ScrollToTop />
 
       <style jsx>{`

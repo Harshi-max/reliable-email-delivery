@@ -1,3 +1,5 @@
+import { ErrorNormalizer, NormalizedError } from './ErrorNormalizer'
+
 export enum ErrorType {
   VALIDATION_ERROR = "VALIDATION_ERROR",
   RATE_LIMIT_ERROR = "RATE_LIMIT_ERROR",
@@ -15,6 +17,7 @@ export class EmailServiceError extends Error {
   public readonly retryable: boolean
   public readonly provider?: string
   public readonly timestamp: Date
+  public readonly normalized: NormalizedError
 
   constructor(
     message: string,
@@ -33,6 +36,14 @@ export class EmailServiceError extends Error {
     this.retryable = options.retryable ?? this.isRetryableByType(type)
     this.provider = options.provider
     this.timestamp = new Date()
+
+    // Generate normalized error explanation
+    this.normalized = ErrorNormalizer.normalize(message, options.provider, options.code)
+    
+    // Update retryable based on normalized error (more accurate)
+    if (!options.retryable && this.normalized.shouldRetry !== undefined) {
+      this.retryable = this.normalized.shouldRetry
+    }
 
     if (options.cause) {
       this.stack = options.cause.stack
@@ -57,6 +68,14 @@ export class EmailServiceError extends Error {
       retryable: this.retryable,
       provider: this.provider,
       timestamp: this.timestamp,
+      normalized: {
+        explanation: this.normalized.explanation,
+        category: this.normalized.category,
+        severity: this.normalized.severity,
+        suggestedAction: this.normalized.suggestedAction,
+        shouldRetry: this.normalized.shouldRetry,
+        shouldFallback: this.normalized.shouldFallback,
+      }
     }
   }
 }
