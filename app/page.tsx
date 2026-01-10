@@ -20,8 +20,6 @@ import {
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
 import ScrollToTop from "@/components/ui/scroll-to-top"
-import NavLink from "@/components/ui/nav-link"
-
 export default function LandingPage() {
   const [isHovered, setIsHovered] = useState(false)
 
