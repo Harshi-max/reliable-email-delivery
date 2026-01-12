@@ -46,15 +46,9 @@ import toast, { Toaster } from "react-hot-toast"
 } from "lucide-react"
 import Link from "next/link"
 import ScrollToTop from "@/components/ui/scroll-to-top"
-
-interface NormalizedErrorInfo {
-  explanation: string
-  category: string
-  severity: string
-  suggestedAction: string
-  shouldRetry: boolean
-  shouldFallback: boolean
-}
+import NavLink from "@/components/ui/nav-link"
+import CopyButton from "@/components/ui/copy-button"
+import toast, { Toaster } from "react-hot-toast"
 
 interface EmailStatus {
   id: string
@@ -89,6 +83,7 @@ export default function EmailDashboard() {
   const [email, setEmail] = useState("")
   const [subject, setSubject] = useState("")
   const [body, setBody] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const [emailStatuses, setEmailStatuses] = useState<EmailStatus[]>([
     {
       id: "task_001",
@@ -166,6 +161,7 @@ export default function EmailDashboard() {
         avgResponseTime: 175 + Math.random() * 50,
       }))
 
+      // Simulate new email status
       if (Math.random() > 0.7) {
         const newStatus: EmailStatus = {
           id: `task_${Date.now()}`,
@@ -202,6 +198,14 @@ export default function EmailDashboard() {
       if (bodyCharCount > bodyCharLimit) {
         throw new Error(`Body exceeds ${bodyCharLimit} characters`)
       }
+  const handleSendEmail = async () => {
+    if (!email || !subject || !body) {
+      toast.error("Please fill all fields", {
+        duration: 3000,
+        position: "bottom-right",
+      })
+      return
+    }
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500))
@@ -232,7 +236,7 @@ export default function EmailDashboard() {
           to: email,
           subject: subject,
         }
-        setEmailStatuses((prev) => [newStatus, ...prev.slice(0, 19)]) // Keep last 20
+        setEmailStatuses((prev) => [newStatus, ...prev.slice(0, 19)])
 
         // Update metrics
         setMetrics((prev) => ({
@@ -245,6 +249,11 @@ export default function EmailDashboard() {
         setEmail("")
         setSubject("")
         setBody("")
+
+        toast.success("Email sent successfully!", {
+          duration: 3000,
+          position: "bottom-right",
+        })
       } else {
         const failedStatus: EmailStatus = {
           id: result.id || Date.now().toString(),
@@ -264,6 +273,11 @@ export default function EmailDashboard() {
           totalFailed: prev.totalFailed + 1,
           successRate: (prev.totalSent / (prev.totalSent + prev.totalFailed + 1)) * 100,
         }))
+
+        toast.error(`Failed to send email: ${result.error}`, {
+          duration: 4000,
+          position: "bottom-right",
+        })
       }
 
       const newStatus: EmailStatus = {
@@ -301,6 +315,16 @@ export default function EmailDashboard() {
       bodyCharCount > bodyCharLimit ||
       !isEmailValid
   })
+    } catch (error) {
+      console.error("Failed to send email:", error)
+      toast.error("Network error. Please try again.", {
+        duration: 4000,
+        position: "bottom-right",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -387,27 +411,27 @@ export default function EmailDashboard() {
     }
   }
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case "AUTHENTICATION":
-        return <Shield className="h-4 w-4" />
-      case "RATE_LIMITING":
-        return <Timer className="h-4 w-4" />
-      case "NETWORK":
-        return <Server className="h-4 w-4" />
-      case "VALIDATION":
-      case "RECIPIENT":
-      case "CONTENT":
-        return <AlertTriangle className="h-4 w-4" />
-      case "CONFIGURATION":
-        return <Activity className="h-4 w-4" />
-      default:
-        return <XCircle className="h-4 w-4" />
-    }
+  const handleCopyLogEntry = (logText: string) => {
+    navigator.clipboard.writeText(logText)
+    toast.success("Log entry copied!", {
+      duration: 2000,
+      position: "bottom-right",
+      icon: "📋",
+    })
+  }
+
+  const handleCopyEmail = (email: string) => {
+    navigator.clipboard.writeText(email)
+    toast.success("Email address copied!", {
+      duration: 2000,
+      position: "bottom-right",
+      icon: "📧",
+    })
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* Toast Notifications */}
       <Toaster
         toastOptions={{
           className: "dark:bg-gray-800 dark:text-white",
@@ -434,6 +458,7 @@ export default function EmailDashboard() {
               </Link>
               <div className="h-6 w-px bg-gray-300 dark:bg-gray-700"></div>
 
+              {/* Dashboard Navigation with Active Highlighting */}
               <div className="flex items-center gap-4">
                 <NavLink
                   href="/"
@@ -701,6 +726,29 @@ export default function EmailDashboard() {
                           handleCopyEmail(target.value)
                         }}
                       />
+                      <Label htmlFor="email" className="text-sm font-medium">
+                        To Email Address
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="recipient@example.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="h-11 flex-1"
+                        />
+                        {email && (
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleCopyEmail(email)}
+                            className="h-11 w-11"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -866,6 +914,7 @@ export default function EmailDashboard() {
               </div>
 
               <div className="space-y-6">
+              <div>
                 <Card className="shadow-lg dark:bg-gray-900">
                   <CardHeader>
                     <CardTitle className="text-lg">Rate Limiting</CardTitle>
@@ -951,6 +1000,7 @@ export default function EmailDashboard() {
             </div>
           </TabsContent>
 
+          {/* Monitor Tab - UPDATED WITH COPY BUTTONS */}
           <TabsContent value="monitor" className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="shadow-lg dark:bg-gray-900">
@@ -991,6 +1041,7 @@ export default function EmailDashboard() {
                                 {status.attempts} attempt{status.attempts !== 1 ? "s" : ""}
                               </span>
 
+                              {/* Copy Button for Task ID */}
                               <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
                                 <CopyButton
                                   text={status.id}
@@ -1006,6 +1057,30 @@ export default function EmailDashboard() {
                                   {status.subject.length} chars
                                 </span>
                               )}
+                            </div>
+
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">ID:</span>
+                                <code className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded font-mono text-gray-700 dark:text-gray-300">
+                                  {status.id.slice(0, 12)}...
+                                </code>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground shrink-0">
+                                  {status.to}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => status.to && handleCopyEmail(status.to)}
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+
                             </div>
 
                             <div className="flex items-center justify-between mb-1">
@@ -1202,6 +1277,7 @@ export default function EmailDashboard() {
             </div>
           </TabsContent>
 
+          {/* Logs Tab - UPDATED WITH COPY BUTTONS */}
           <TabsContent value="logs" className="space-y-6 animate-fade-in">
             <Card className="shadow-lg dark:bg-gray-900">
               <CardHeader>
@@ -1276,6 +1352,7 @@ export default function EmailDashboard() {
           </TabsContent>
         </Tabs>
 
+        {/* Features Overview */}
         <Card className="mt-8 shadow-lg animate-fade-in delay-500 dark:bg-gray-900">
           <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
             <CardTitle className="flex items-center gap-2">
