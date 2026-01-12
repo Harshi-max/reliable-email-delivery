@@ -1,65 +1,56 @@
 import Link from "next/link"
-import { Github } from "lucide-react"
+import { Github, Mail } from "lucide-react"
 
 export function SiteFooter() {
   return (
-    <footer className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container px-4 py-8 mx-auto md:px-6 md:py-12">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Resilient Email Service
+    <footer className="border-t bg-background">
+      <div className="container mx-auto px-6 py-12">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 md:grid-cols-5">
+
+          <div className="space-y-3 md:col-span-2">
+            <h3 className="text-base font-semibold text-foreground">
+              Reliable Email Delivery
             </h3>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              Enterprise-grade email delivery system with built-in resilience patterns, monitoring, and failover capabilities.
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              A reliable and scalable platform for email delivery with monitoring,
+              resilience, and failover support.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Status: <span className="font-medium text-foreground">Active development</span>
             </p>
           </div>
-          
+
           <div>
-            <h4 className="font-semibold mb-4">Navigation</h4>
+            <h4 className="mb-3 text-sm font-medium text-foreground">
+              Navigation
+            </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link href="/" className="hover:text-foreground transition-colors">
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link href="/dashboard" className="hover:text-foreground transition-colors">
-                  Dashboard
-                </Link>
-              </li>
-              <li>
-                <Link href="/status" className="hover:text-foreground transition-colors">
-                  System Status
-                </Link>
-              </li>
-              <li>
-                <Link href="/setup" className="hover:text-foreground transition-colors">
-                  Setup Guide
-                </Link>
-              </li>
+              <li><Link href="/" className="hover:text-foreground">Home</Link></li>
+              <li><Link href="/dashboard" className="hover:text-foreground">Dashboard</Link></li>
+              <li><Link href="/status" className="hover:text-foreground">System Status</Link></li>
+              <li><Link href="/setup" className="hover:text-foreground">Setup Guide</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Resources</h4>
+            <h4 className="mb-3 text-sm font-medium text-foreground">
+              Resources
+            </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link href="#" className="hover:text-foreground transition-colors">
+                <Link
+                  href="https://github.com/Harshi-max/reliable-email-delivery#readme"
+                  target="_blank"
+                  className="hover:text-foreground"
+                >
                   Documentation
                 </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-foreground transition-colors">
-                  API Reference
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="https://github.com/example/resilient-email-service" 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="flex items-center gap-2 hover:text-foreground transition-colors"
+                <Link
+                  href="https://github.com/Harshi-max/reliable-email-delivery"
+                  target="_blank"
+                  className="flex items-center gap-2 hover:text-foreground"
                 >
                   <Github className="h-4 w-4" />
                   GitHub
@@ -69,32 +60,38 @@ export function SiteFooter() {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Legal</h4>
+            <h4 className="mb-3 text-sm font-medium text-foreground">
+              Contact
+            </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link href="#" className="hover:text-foreground transition-colors">
-                  Privacy Policy
-                </Link>
+              <li className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                <a
+                  href="#"
+                  className="hover:text-foreground"
+                >
+                  support@reliable-email.dev
+                </a>
               </li>
               <li>
-                <Link href="#" className="hover:text-foreground transition-colors">
-                  Terms of Service
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="hover:text-foreground transition-colors">
-                  License
+                <Link
+                  href="https://github.com/Harshi-max/reliable-email-delivery/discussions"
+                  target="_blank"
+                  className="hover:text-foreground"
+                >
+                  Community Discussions
                 </Link>
               </li>
             </ul>
           </div>
+
         </div>
 
-        <div className="mt-8 border-t pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
-          <p>© {new Date().getFullYear()} Resilient Email Service. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <span>Built with Next.js & Tailwind CSS</span>
-          </div>
+        <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t pt-6 text-xs text-muted-foreground sm:flex-row">
+          <p>
+            © {new Date().getFullYear()} Reliable Email Delivery. All rights reserved.
+          </p>
+          <span>Built with Next.js & Tailwind CSS</span>
         </div>
       </div>
     </footer>
