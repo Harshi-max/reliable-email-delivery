@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useCallback, useEffect } from "react"
 import { useState, useCallback } from "react"
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd"
 import { Button } from "@/components/ui/button"
@@ -24,11 +25,13 @@ import {
   Copy,
   Palette,
   Layers,
+  AlertCircle,
 } from "lucide-react"
 import { ArrowLeft, Send } from "lucide-react"
 import Link from "next/link"
 import toast, { Toaster } from "react-hot-toast"
 import CopyButton from "@/components/ui/copy-button"
+import { CharacterCounter } from "@/components/ui/character-counter"
 
 interface EmailComponent {
   id: string
@@ -75,6 +78,20 @@ export default function EmailBuilderPage() {
   const [emailSubject, setEmailSubject] = useState("Your Beautiful Email Template")
   const [emailRecipient, setEmailRecipient] = useState("")
   const [isSending, setIsSending] = useState(false)
+  
+  // Character counter states
+  const [subjectCharCount, setSubjectCharCount] = useState(emailSubject.length)
+  const [subjectCharLimit] = useState(100)
+  const [componentCharCounts, setComponentCharCounts] = useState<{[key: string]: number}>({})
+
+  // Initialize component character counts
+  useEffect(() => {
+    const initialCounts: {[key: string]: number} = {}
+    components.forEach(comp => {
+      initialCounts[comp.id] = comp.content.length
+    })
+    setComponentCharCounts(initialCounts)
+  }, [])
 
   const { toast } = useToast()
 
@@ -96,6 +113,12 @@ export default function EmailBuilderPage() {
       newComponents.splice(destination.index, 0, newComponent)
       setComponents(newComponents)
       setSelectedComponent(newComponent.id)
+      
+      // Initialize character count for new component
+      setComponentCharCounts(prev => ({
+        ...prev,
+        [newComponent.id]: newComponent.content.length
+      }))
       
       toast.success(`Added ${componentType} component`, {
         duration: 2000,
@@ -151,6 +174,17 @@ export default function EmailBuilderPage() {
   }
 
   const updateComponent = (id: string, updates: Partial<EmailComponent>) => {
+    setComponents(prev => prev.map(comp =>
+      comp.id === id ? { ...comp, ...updates } : comp
+    ))
+    
+    // Update character count if content changed
+    if (updates.content !== undefined) {
+      setComponentCharCounts(prev => ({
+        ...prev,
+        [id]: updates.content?.length || 0
+      }))
+    }
     setComponents(prev =>
       prev.map(comp => (comp.id === id ? { ...comp, ...updates } : comp))
     )
@@ -159,10 +193,65 @@ export default function EmailBuilderPage() {
   const deleteComponent = (id: string) => {
     setComponents(prev => prev.filter(comp => comp.id !== id))
     setSelectedComponent(null)
+    
+    // Remove character count for deleted component
+    setComponentCharCounts(prev => {
+      const newCounts = { ...prev }
+      delete newCounts[id]
+      return newCounts
+    })
+    
     toast.success("Component deleted", {
       duration: 2000,
       position: "bottom-right",
     })
+  }
+
+  const duplicateComponent = (id: string) => {
+    const component = components.find(c => c.id === id)
+    if (!component) return
+    
+    const newComponent = {
+      ...component,
+      id: `${component.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    }
+    
+    const index = components.findIndex(c => c.id === id)
+    const newComponents = [...components]
+    newComponents.splice(index + 1, 0, newComponent)
+    setComponents(newComponents)
+    setSelectedComponent(newComponent.id)
+    
+    // Set character count for duplicated component
+    setComponentCharCounts(prev => ({
+      ...prev,
+      [newComponent.id]: newComponent.content.length
+    }))
+    
+    toast.success("Component duplicated", {
+      duration: 2000,
+      position: "bottom-right",
+    })
+  }
+
+  const handleSendEmail = async () => {
+    if (!emailRecipient) {
+      toast.error("Please enter recipient email", {
+        duration: 3000,
+        position: "bottom-right",
+      })
+      return
+    }
+    
+    if (subjectCharCount > subjectCharLimit) {
+      toast.error(`Subject exceeds ${subjectCharLimit} characters`, {
+        duration: 3000,
+        position: "bottom-right",
+      })
+      return
+    }
+    
+    if (isSending) return   // ✅ guard added
   }
 
   const duplicateComponent = (id: string) => {
@@ -348,11 +437,24 @@ export default function EmailBuilderPage() {
   const loadTemplate = (templateComponents: EmailComponent[]) => {
     setComponents(templateComponents)
     setSelectedComponent(null)
+    
+    // Update character counts for template components
+    const newCounts: {[key: string]: number} = {}
+    templateComponents.forEach(comp => {
+      newCounts[comp.id] = comp.content.length
+    })
+    setComponentCharCounts(newCounts)
+    
     toast.success("Template loaded!", {
       duration: 2000,
       position: "bottom-right",
     })
   }
+
+  const totalComponentsCharCount = Object.values(componentCharCounts).reduce((a, b) => a + b, 0)
+  const totalComponentsCharLimit = 5000
+
+  const isSendDisabled = !emailRecipient || isSending || subjectCharCount > subjectCharLimit
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -420,6 +522,29 @@ export default function EmailBuilderPage() {
                     </Button>
                   )}
                 </div>
+                
+                <div className="relative">
+                  <Input
+                    placeholder="📝 Subject"
+                    value={emailSubject}
+                    onChange={(e) => {
+                      setEmailSubject(e.target.value)
+                      setSubjectCharCount(e.target.value.length)
+                    }}
+                    className="w-48 dark:bg-gray-700 dark:border-gray-600"
+                    maxLength={subjectCharLimit}
+                  />
+                  <div className="absolute -bottom-6 left-0 right-0">
+                    <CharacterCounter 
+                      current={subjectCharCount} 
+                      max={subjectCharLimit}
+                      label="Subject line character count"
+                      className="text-xs"
+                      showLimit={false}
+                    />
+                  </div>
+                </div>
+                
                 <Input
                   placeholder="📝 Subject"
                   value={emailSubject}
@@ -436,6 +561,8 @@ export default function EmailBuilderPage() {
                 </Button>
                 <Button
                   onClick={handleSendEmail}
+                  disabled={isSendDisabled}
+                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={!emailRecipient || isSending}
                   className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
                 >
@@ -532,6 +659,71 @@ export default function EmailBuilderPage() {
                       </Droppable>
                     </CardContent>
                   </Card>
+                  
+                  <Card className="mt-4 dark:bg-gray-900 dark:border-gray-700">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">Content Statistics</CardTitle>
+                      <CardDescription className="dark:text-gray-400">
+                        Character usage overview
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">Subject Line</span>
+                          <span className={`text-xs font-medium ${
+                            subjectCharCount > subjectCharLimit ? 'text-red-600' : 'text-gray-600'
+                          }`}>
+                            {subjectCharCount} / {subjectCharLimit}
+                          </span>
+                        </div>
+                        <CharacterCounter 
+                          current={subjectCharCount} 
+                          max={subjectCharLimit}
+                          showTooltip={false}
+                        />
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">Total Content</span>
+                          <span className={`text-xs font-medium ${
+                            totalComponentsCharCount > totalComponentsCharLimit ? 'text-red-600' : 'text-gray-600'
+                          }`}>
+                            {totalComponentsCharCount} / {totalComponentsCharLimit}
+                          </span>
+                        </div>
+                        <CharacterCounter 
+                          current={totalComponentsCharCount} 
+                          max={totalComponentsCharLimit}
+                          showTooltip={false}
+                        />
+                      </div>
+                      
+                      <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                          <div className="flex justify-between">
+                            <span>Components:</span>
+                            <span className="font-medium">{components.length}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Text components:</span>
+                            <span className="font-medium">
+                              {components.filter(c => c.type === "text").length}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Avg chars per component:</span>
+                            <span className="font-medium">
+                              {components.length > 0 
+                                ? Math.round(totalComponentsCharCount / components.length) 
+                                : 0}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
                 
                 <TabsContent value="templates" className="mt-4">
@@ -624,6 +816,54 @@ export default function EmailBuilderPage() {
                       <CardHeader>
                         <CardTitle className="text-sm flex items-center justify-between">
                           <span>Properties</span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="capitalize">
+                              {selectedComponentData.type}
+                            </Badge>
+                            {selectedComponentData.type === "text" && (
+                              <span className="text-xs text-gray-500">
+                                {componentCharCounts[selectedComponentData.id] || 0} chars
+                              </span>
+                            )}
+                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {selectedComponentData.type === "text" && (
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <Label htmlFor="content">Content</Label>
+                              <CharacterCounter 
+                                current={componentCharCounts[selectedComponentData.id] || 0} 
+                                max={1000}
+                                showLimit={false}
+                                showTooltip={false}
+                                className="text-xs"
+                              />
+                            </div>
+                            <Textarea
+                              id="content"
+                              value={selectedComponentData.content}
+                              onChange={(e) => updateComponent(selectedComponentData.id, { content: e.target.value })}
+                              className="mt-1 dark:bg-gray-800 dark:border-gray-600"
+                              rows={3}
+                              maxLength={1000}
+                            />
+                          </div>
+                        )}
+                        
+                        {selectedComponentData.type !== "text" && (
+                          <div>
+                            <Label htmlFor="content">Content</Label>
+                            <Textarea
+                              id="content"
+                              value={selectedComponentData.content}
+                              onChange={(e) => updateComponent(selectedComponentData.id, { content: e.target.value })}
+                              className="mt-1 dark:bg-gray-800 dark:border-gray-600"
+                              rows={3}
+                            />
+                          </div>
+                        )}
                           <Badge variant="outline" className="capitalize">
                             {selectedComponentData.type}
                           </Badge>
@@ -746,6 +986,29 @@ export default function EmailBuilderPage() {
                       <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                       <div className="w-3 h-3 rounded-full bg-green-500"></div>
                     </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-sm font-medium dark:text-gray-300">
+                        {previewMode === "mobile" ? "📱 Mobile Preview" : "🖥️ Desktop Preview"}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {components.length} components
+                        </div>
+                        <div className="h-4 w-px bg-gray-300 dark:bg-gray-600"></div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {totalComponentsCharCount} chars
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {subjectCharCount > subjectCharLimit && (
+                        <AlertCircle className="h-4 w-4 text-red-500" />
+                      )}
+                      <span className={`text-xs font-medium ${
+                        subjectCharCount > subjectCharLimit ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                        Subject: {subjectCharCount}/{subjectCharLimit}
+                      </span>
                     <div className="text-sm font-medium dark:text-gray-300">
                       {previewMode === "mobile" ? "📱 Mobile Preview" : "🖥️ Desktop Preview"}
                     </div>
@@ -794,6 +1057,11 @@ export default function EmailBuilderPage() {
                                 } rounded-lg pointer-events-none transition-all`}></div>
                                 
                                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                  {component.type === "text" && (
+                                    <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded">
+                                      {componentCharCounts[component.id] || 0} chars
+                                    </div>
+                                  )}
                                   <Button
                                     variant="secondary"
                                     size="sm"
