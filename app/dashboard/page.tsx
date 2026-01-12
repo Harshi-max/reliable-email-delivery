@@ -44,15 +44,9 @@ import toast, { Toaster } from "react-hot-toast"
 } from "lucide-react"
 import Link from "next/link"
 import ScrollToTop from "@/components/ui/scroll-to-top"
-
-interface NormalizedErrorInfo {
-  explanation: string
-  category: string
-  severity: string
-  suggestedAction: string
-  shouldRetry: boolean
-  shouldFallback: boolean
-}
+import NavLink from "@/components/ui/nav-link"
+import CopyButton from "@/components/ui/copy-button"
+import toast, { Toaster } from "react-hot-toast"
 
 interface EmailStatus {
   id: string
@@ -161,6 +155,7 @@ export default function EmailDashboard() {
         avgResponseTime: 175 + Math.random() * 50,
       }))
 
+      // Simulate new email status
       if (Math.random() > 0.7) {
         const newStatus: EmailStatus = {
           id: `task_${Date.now()}`,
@@ -365,27 +360,27 @@ export default function EmailDashboard() {
     }
   }
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case "AUTHENTICATION":
-        return <Shield className="h-4 w-4" />
-      case "RATE_LIMITING":
-        return <Timer className="h-4 w-4" />
-      case "NETWORK":
-        return <Server className="h-4 w-4" />
-      case "VALIDATION":
-      case "RECIPIENT":
-      case "CONTENT":
-        return <AlertTriangle className="h-4 w-4" />
-      case "CONFIGURATION":
-        return <Activity className="h-4 w-4" />
-      default:
-        return <XCircle className="h-4 w-4" />
-    }
+  const handleCopyLogEntry = (logText: string) => {
+    navigator.clipboard.writeText(logText)
+    toast.success("Log entry copied!", {
+      duration: 2000,
+      position: "bottom-right",
+      icon: "📋",
+    })
+  }
+
+  const handleCopyEmail = (email: string) => {
+    navigator.clipboard.writeText(email)
+    toast.success("Email address copied!", {
+      duration: 2000,
+      position: "bottom-right",
+      icon: "📧",
+    })
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* Toast Notifications */}
       <Toaster
         toastOptions={{
           className: "dark:bg-gray-800 dark:text-white",
@@ -461,6 +456,61 @@ export default function EmailDashboard() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
+              <Link href="/">
+                <Button variant="ghost" size="sm" className="hover:bg-white/80 dark:hover:bg-gray-800">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Home
+                </Button>
+              </Link>
+              <div className="h-6 w-px bg-gray-300 dark:bg-gray-700"></div>
+
+              {/* Dashboard Navigation with Active Highlighting */}
+              <div className="flex items-center gap-4">
+                <NavLink
+                  href="/"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Home
+                </NavLink>
+
+                <NavLink
+                  href="/dashboard"
+                  exact
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Dashboard
+                </NavLink>
+
+                <NavLink
+                  href="/builder"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Builder
+                </NavLink>
+
+                <NavLink
+                  href="/setup"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Setup
+                </NavLink>
+
+                <NavLink
+                  href="/status"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Status
+                </NavLink>
               <BackButton fallback="/" label="Back" />
               <div className="h-6 w-px bg-gray-300"></div>
               
@@ -802,6 +852,7 @@ export default function EmailDashboard() {
               </div>
 
               <div className="space-y-6">
+              <div>
                 <Card className="shadow-lg dark:bg-gray-900">
                   <CardHeader>
                     <CardTitle className="text-lg">Rate Limiting</CardTitle>
@@ -861,6 +912,7 @@ export default function EmailDashboard() {
             </div>
           </TabsContent>
 
+          {/* Monitor Tab - UPDATED WITH COPY BUTTONS */}
           <TabsContent value="monitor" className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="shadow-lg dark:bg-gray-900">
@@ -901,6 +953,7 @@ export default function EmailDashboard() {
                                 {status.attempts} attempt{status.attempts !== 1 ? "s" : ""}
                               </span>
 
+                              {/* Copy Button for Task ID */}
                               <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
                                 <CopyButton
                                   text={status.id}
@@ -916,6 +969,34 @@ export default function EmailDashboard() {
                                   {status.subject.length} chars
                                 </span>
                               )}
+                            </div>
+
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">ID:</span>
+                                <code className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded font-mono text-gray-700 dark:text-gray-300">
+                                  {status.id.slice(0, 12)}...
+                                </code>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground shrink-0">
+                                  {status.to}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => status.to && handleCopyEmail(status.to)}
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            </div>
+
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-sm font-medium truncate flex-1">{status.subject}</p>
                             </div>
 
                             <div className="flex items-center justify-between mb-1">
@@ -1112,6 +1193,7 @@ export default function EmailDashboard() {
             </div>
           </TabsContent>
 
+          {/* Logs Tab - UPDATED WITH COPY BUTTONS */}
           <TabsContent value="logs" className="space-y-6 animate-fade-in">
             <Card className="shadow-lg dark:bg-gray-900">
               <CardHeader>
@@ -1186,6 +1268,7 @@ export default function EmailDashboard() {
           </TabsContent>
         </Tabs>
 
+        {/* Features Overview */}
         <Card className="mt-8 shadow-lg animate-fade-in delay-500 dark:bg-gray-900">
           <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
             <CardTitle className="flex items-center gap-2">

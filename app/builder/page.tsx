@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback } from "react"
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -251,7 +252,38 @@ export default function EmailBuilderPage() {
     }
     
     if (isSending) return   // ✅ guard added
+  }
 
+  const duplicateComponent = (id: string) => {
+    const component = components.find(c => c.id === id)
+    if (!component) return
+    
+    const newComponent = {
+      ...component,
+      id: `${component.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    }
+    
+    const index = components.findIndex(c => c.id === id)
+    const newComponents = [...components]
+    newComponents.splice(index + 1, 0, newComponent)
+    setComponents(newComponents)
+    setSelectedComponent(newComponent.id)
+    
+    toast.success("Component duplicated", {
+      duration: 2000,
+      position: "bottom-right",
+    })
+  }
+
+  const handleSendEmail = async () => {
+    if (!emailRecipient) {
+      toast.error("Please enter recipient email", {
+        duration: 3000,
+        position: "bottom-right",
+      })
+      return
+    }
+    
     if (!emailRecipient || !emailSubject) {
       toast({
         title: "Missing fields",
@@ -513,6 +545,12 @@ export default function EmailBuilderPage() {
                   </div>
                 </div>
                 
+                <Input
+                  placeholder="📝 Subject"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  className="w-40 dark:bg-gray-700 dark:border-gray-600"
+                />
                 <Button
                   onClick={handleCopyHTML}
                   variant="outline"
@@ -525,6 +563,8 @@ export default function EmailBuilderPage() {
                   onClick={handleSendEmail}
                   disabled={isSendDisabled}
                   className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!emailRecipient || isSending}
+                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
                 >
                   {isSending ? (
                     <>
@@ -546,6 +586,7 @@ export default function EmailBuilderPage() {
 
       <div className="flex h-[calc(100vh-80px)]">
         <DragDropContext onDragEnd={handleDragEnd}>
+          {/* Left Sidebar - Components */}
           <div className="w-80 bg-white dark:bg-gray-800 border-r dark:border-gray-700 overflow-y-auto">
             <div className="p-4">
               <Tabs defaultValue="components" className="w-full">
@@ -823,6 +864,22 @@ export default function EmailBuilderPage() {
                             />
                           </div>
                         )}
+                          <Badge variant="outline" className="capitalize">
+                            {selectedComponentData.type}
+                          </Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div>
+                          <Label htmlFor="content">Content</Label>
+                          <Textarea
+                            id="content"
+                            value={selectedComponentData.content}
+                            onChange={(e) => updateComponent(selectedComponentData.id, { content: e.target.value })}
+                            className="mt-1 dark:bg-gray-800 dark:border-gray-600"
+                            rows={3}
+                          />
+                        </div>
                         
                         {selectedComponentData.type === "text" && (
                           <>
@@ -916,6 +973,7 @@ export default function EmailBuilderPage() {
             </div>
           </div>
 
+          {/* Main Canvas */}
           <div className="flex-1 bg-gray-100 dark:bg-gray-900 overflow-auto">
             <div className="p-6">
               <div className={`mx-auto bg-white dark:bg-gray-800 shadow-xl rounded-lg border dark:border-gray-700 transition-all ${
@@ -951,6 +1009,11 @@ export default function EmailBuilderPage() {
                       }`}>
                         Subject: {subjectCharCount}/{subjectCharLimit}
                       </span>
+                    <div className="text-sm font-medium dark:text-gray-300">
+                      {previewMode === "mobile" ? "📱 Mobile Preview" : "🖥️ Desktop Preview"}
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      {components.length} components
                     </div>
                   </div>
                 </div>
