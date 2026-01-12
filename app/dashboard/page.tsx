@@ -31,6 +31,17 @@ import {
   ArrowLeft,
   Palette,
   Copy,
+  AlertCircle,
+} from "lucide-react"
+import Link from "next/link"
+import ScrollToTop from "@/components/ui/scroll-to-top"
+import NavLink from "@/components/ui/nav-link"
+import CopyButton from "@/components/ui/copy-button"
+import { CharacterCounter } from "@/components/ui/character-counter"
+import { LoadingButtonEnhanced } from "@/components/ui/loading-button-enhanced"
+import { usePreventDoubleClick } from "@/hooks/use-prevent-double-click"
+import toast, { Toaster } from "react-hot-toast"
+  Sparkles,
 } from "lucide-react"
 import Link from "next/link"
 import ScrollToTop from "@/components/ui/scroll-to-top"
@@ -112,11 +123,16 @@ export default function EmailDashboard() {
     rateLimitRemaining: 100,
   })
   const [activeTab, setActiveTab] = useState("send")
+  
+  // Character counter states
+  const [subjectCharCount, setSubjectCharCount] = useState(0)
+  const [bodyCharCount, setBodyCharCount] = useState(0)
+  const [bodyCharLimit] = useState(5000)
+  const [subjectCharLimit] = useState(100)
 
   // Simulate real-time updates
   useEffect(() => {
     const interval = setInterval(() => {
-      // Update provider status
       setProviders([
         {
           name: "Resend (Primary)",
@@ -134,7 +150,6 @@ export default function EmailDashboard() {
         },
       ])
 
-      // Update metrics
       setMetrics((prev) => ({
         ...prev,
         rateLimitRemaining: Math.max(0, prev.rateLimitRemaining - Math.random() * 2),
@@ -159,6 +174,20 @@ export default function EmailDashboard() {
     return () => clearInterval(interval)
   }, [])
 
+  const { isLoading: sendLoading, handleClick: handleSendEmail } = usePreventDoubleClick({
+    action: async () => {
+      // Validation
+      if (!email || !subject || !body) {
+        throw new Error("Please fill all fields")
+      }
+      
+      if (subjectCharCount > subjectCharLimit) {
+        throw new Error(`Subject exceeds ${subjectCharLimit} characters`)
+      }
+      
+      if (bodyCharCount > bodyCharLimit) {
+        throw new Error(`Body exceeds ${bodyCharLimit} characters`)
+      }
   const handleSendEmail = async () => {
     if (!email || !subject || !body) {
       toast.error("Please fill all fields", {
@@ -168,9 +197,9 @@ export default function EmailDashboard() {
       return
     }
 
-    setIsLoading(true)
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500))
 
-    try {
       const response = await fetch("/api/email/send", {
         method: "POST",
         headers: {
@@ -185,6 +214,8 @@ export default function EmailDashboard() {
 
       const result = await response.json()
 
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to send email")
       if (response.ok) {
         const newStatus: EmailStatus = {
           id: result.id,
@@ -238,6 +269,39 @@ export default function EmailDashboard() {
           position: "bottom-right",
         })
       }
+
+      const newStatus: EmailStatus = {
+        id: result.id || `task_${Date.now()}`,
+        status: "sent",
+        provider: result.provider || "Resend (Primary)",
+        attempts: result.attempts || 1,
+        timestamp: new Date().toISOString(),
+        to: email,
+        subject: subject,
+      }
+      setEmailStatuses((prev) => [newStatus, ...prev.slice(0, 19)])
+
+      setMetrics((prev) => ({
+        ...prev,
+        totalSent: prev.totalSent + 1,
+        successRate: ((prev.totalSent + 1) / (prev.totalSent + prev.totalFailed + 1)) * 100,
+      }))
+
+      // Clear form
+      setEmail("")
+      setSubject("")
+      setBody("")
+      setSubjectCharCount(0)
+      setBodyCharCount(0)
+
+      return result
+    },
+    successMessage: "Email sent successfully!",
+    errorMessage: "Failed to send email",
+    disabled: !email || !subject || !body || 
+      subjectCharCount > subjectCharLimit || 
+      bodyCharCount > bodyCharLimit
+  })
     } catch (error) {
       console.error("Failed to send email:", error)
       toast.error("Network error. Please try again.", {
@@ -315,6 +379,40 @@ export default function EmailDashboard() {
     })
   }
 
+  const isSendDisabled = !email || !subject || !body || 
+    subjectCharCount > subjectCharLimit || bodyCharCount > bodyCharLimit
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "TEMPORARY":
+        return "bg-yellow-100 text-yellow-800 border-yellow-300"
+      case "PERMANENT":
+        return "bg-red-100 text-red-800 border-red-300"
+      case "CRITICAL":
+        return "bg-purple-100 text-purple-800 border-purple-300"
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-300"
+    }
+  }
+
+  const handleCopyLogEntry = (logText: string) => {
+    navigator.clipboard.writeText(logText)
+    toast.success("Log entry copied!", {
+      duration: 2000,
+      position: "bottom-right",
+      icon: "📋",
+    })
+  }
+
+  const handleCopyEmail = (email: string) => {
+    navigator.clipboard.writeText(email)
+    toast.success("Email address copied!", {
+      duration: 2000,
+      position: "bottom-right",
+      icon: "📧",
+    })
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Toast Notifications */}
@@ -330,6 +428,63 @@ export default function EmailDashboard() {
       />
 
       <div className="container mx-auto p-6 max-w-7xl">
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Link href="/">
+                <Button variant="ghost" size="sm" className="hover:bg-white/80 dark:hover:bg-gray-800">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Home
+                </Button>
+              </Link>
+              <div className="h-6 w-px bg-gray-300 dark:bg-gray-700"></div>
+
+              <div className="flex items-center gap-4">
+                <NavLink
+                  href="/"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Home
+                </NavLink>
+
+                <NavLink
+                  href="/dashboard"
+                  exact
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Dashboard
+                </NavLink>
+
+                <NavLink
+                  href="/builder"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Builder
+                </NavLink>
+
+                <NavLink
+                  href="/setup"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Setup
+                </NavLink>
+
+                <NavLink
+                  href="/status"
+                  className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                  activeClassName="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300 shadow-sm"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Status
+                </NavLink>
     <div className="min-h-screen w-full bg-background">
        <div className="w-full px-6">
         {/* Header */}
@@ -456,7 +611,6 @@ export default function EmailDashboard() {
             </div>
           </div>
 
-          {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <Card className="border-l-4 border-l-green-500 animate-fade-in dark:bg-gray-900">
               <CardContent className="p-4">
@@ -559,7 +713,6 @@ export default function EmailDashboard() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Send Email Tab */}
           <TabsContent value="send" className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
@@ -608,6 +761,7 @@ export default function EmailDashboard() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           className="h-11 flex-1"
+                          disabled={sendLoading}
                         />
                         {email && (
                           <Button
@@ -615,58 +769,142 @@ export default function EmailDashboard() {
                             size="icon"
                             onClick={() => handleCopyEmail(email)}
                             className="h-11 w-11"
+                            disabled={sendLoading}
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
                         )}
                       </div>
                     </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="subject" className="text-sm font-medium">
-                        Subject Line
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="subject" className="text-sm font-medium">
+                          Subject Line
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          {subjectCharCount > subjectCharLimit && (
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                          )}
+                          <CharacterCounter 
+                            current={subjectCharCount} 
+                            max={subjectCharLimit}
+                            label="Subject line character count"
+                          />
+                        </div>
+                      </div>
                       <Input
                         id="subject"
                         placeholder="Enter your email subject"
                         value={subject}
-                        onChange={(e) => setSubject(e.target.value)}
+                        onChange={(e) => {
+                          setSubject(e.target.value)
+                          setSubjectCharCount(e.target.value.length)
+                        }}
                         className="h-11"
+                        maxLength={subjectCharLimit}
+                        disabled={sendLoading}
                       />
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Recommended: 6-10 words for better open rates
+                      </p>
                     </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="body" className="text-sm font-medium">
-                        Message Body
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="body" className="text-sm font-medium">
+                          Message Body
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          {bodyCharCount > bodyCharLimit && (
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                          )}
+                          <CharacterCounter 
+                            current={bodyCharCount} 
+                            max={bodyCharLimit}
+                            label="Message body character count"
+                          />
+                        </div>
+                      </div>
                       <Textarea
                         id="body"
                         placeholder="Write your email message here..."
                         value={body}
-                        onChange={(e) => setBody(e.target.value)}
+                        onChange={(e) => {
+                          setBody(e.target.value)
+                          setBodyCharCount(e.target.value.length)
+                        }}
                         rows={6}
                         className="resize-none dark:bg-gray-800"
+                        maxLength={bodyCharLimit}
+                        disabled={sendLoading}
                       />
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Use paragraphs and bullet points for better readability
+                      </p>
                     </div>
-                    <Button
+
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                            Character Limit Summary
+                          </p>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs text-blue-700 dark:text-blue-400">Subject</p>
+                              <p className={`text-sm font-medium ${subjectCharCount > subjectCharLimit ? 'text-red-600' : 'text-blue-900 dark:text-blue-300'}`}>
+                                {subjectCharCount} / {subjectCharLimit}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-blue-700 dark:text-blue-400">Body</p>
+                              <p className={`text-sm font-medium ${bodyCharCount > bodyCharLimit ? 'text-red-600' : 'text-blue-900 dark:text-blue-300'}`}>
+                                {bodyCharCount} / {bodyCharLimit}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <LoadingButtonEnhanced
                       onClick={handleSendEmail}
-                      disabled={isLoading || !email || !subject || !body}
-                      className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200"
+                      status={sendLoading ? "loading" : "idle"}
+                      loadingText="Sending Email..."
+                      successText="Email Sent!"
+                      errorText="Failed to Send"
+                      disabled={isSendDisabled}
+                      className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      autoReset={true}
+                      resetDelay={2000}
+                      showStatusIcon={true}
                     >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Sending Email...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="mr-2 h-4 w-4" />
-                          Send Email
-                        </>
-                      )}
-                    </Button>
+                      <Send className="mr-2 h-4 w-4" />
+                      Send Email
+                    </LoadingButtonEnhanced>
+
+                    {sendLoading && (
+                      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
+                          <div>
+                            <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                              Sending in progress...
+                            </p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400">
+                              Please don't close this window
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
 
+              <div className="space-y-6">
               <div>
                 <Card className="shadow-lg dark:bg-gray-900">
                   <CardHeader>
@@ -687,6 +925,40 @@ export default function EmailDashboard() {
                         Rate limiting protects against abuse and ensures fair usage across all users.
                       </AlertDescription>
                     </Alert>
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-lg dark:bg-gray-900">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Character Guidelines</CardTitle>
+                    <CardDescription>Best practices for email composition</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">Subject Line</span>
+                          <Badge variant="outline" className="text-xs">
+                            Max {subjectCharLimit}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Keep under 60 characters for mobile display. Use action-oriented language.
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">Message Body</span>
+                          <Badge variant="outline" className="text-xs">
+                            Max {bodyCharLimit}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Longer emails may be truncated by some email clients. Be concise and clear.
+                        </p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -745,6 +1017,35 @@ export default function EmailDashboard() {
 
                             <div className="flex items-center gap-2 mb-1">
                               <p className="text-sm font-medium truncate flex-1">{status.subject}</p>
+                              {status.subject && (
+                                <span className="text-xs text-gray-500">
+                                  {status.subject.length} chars
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">ID:</span>
+                                <code className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded font-mono text-gray-700 dark:text-gray-300">
+                                  {status.id.slice(0, 12)}...
+                                </code>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground shrink-0">
+                                  {status.to}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => status.to && handleCopyEmail(status.to)}
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+
                             </div>
 
                             <div className="flex items-center justify-between mb-1">
@@ -877,7 +1178,6 @@ export default function EmailDashboard() {
             </div>
           </TabsContent>
 
-          {/* Providers Tab */}
           <TabsContent value="providers" className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {providers.map((provider, index) => (
