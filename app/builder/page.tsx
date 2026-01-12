@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback } from "react"
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -358,7 +359,38 @@ export default function EmailBuilderPage() {
     })
   const handleSendEmail = async () => {
     if (isSending) return   // ✅ guard added
+  }
 
+  const duplicateComponent = (id: string) => {
+    const component = components.find(c => c.id === id)
+    if (!component) return
+    
+    const newComponent = {
+      ...component,
+      id: `${component.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    }
+    
+    const index = components.findIndex(c => c.id === id)
+    const newComponents = [...components]
+    newComponents.splice(index + 1, 0, newComponent)
+    setComponents(newComponents)
+    setSelectedComponent(newComponent.id)
+    
+    toast.success("Component duplicated", {
+      duration: 2000,
+      position: "bottom-right",
+    })
+  }
+
+  const handleSendEmail = async () => {
+    if (!emailRecipient) {
+      toast.error("Please enter recipient email", {
+        duration: 3000,
+        position: "bottom-right",
+      })
+      return
+    }
+    
     if (!emailRecipient || !emailSubject) {
       toast({
         title: "Missing fields",
@@ -373,6 +405,7 @@ export default function EmailBuilderPage() {
     try {
       const componentHTML = components.map(comp => {
         const styles = Object.entries(comp.styles)
+          .filter(([key]) => !key.includes("Url") && key !== "src" && key !== "alt" && key !== "href")
           .map(([key, value]) => `${key.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${value}`)
           .join("; ")
 
@@ -390,6 +423,23 @@ export default function EmailBuilderPage() {
         }
       }).join("")
 
+      const fullHTML = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>${emailSubject}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
+        .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        ${componentHTML}
+    </div>
+</body>
+</html>`
       const html = `<div style="max-width:600px;margin:0 auto">${componentHTML}</div>`
 
       const response = await fetch("/api/email/send", {
@@ -398,6 +448,28 @@ export default function EmailBuilderPage() {
         body: JSON.stringify({
           to: emailRecipient,
           subject: emailSubject,
+          body: fullHTML,
+          html: fullHTML
+        })
+      })
+
+      if (response.ok) {
+        toast.success("✅ Email sent successfully!", {
+          duration: 4000,
+          position: "bottom-right",
+        })
+        setEmailRecipient("")
+      } else {
+        const error = await response.json()
+        toast.error(`❌ Failed: ${error.error}`, {
+          duration: 4000,
+          position: "bottom-right",
+        })
+      }
+    } catch (error) {
+      toast.error("❌ Network error", {
+        duration: 4000,
+        position: "bottom-right",
           html
         })
       })
@@ -423,6 +495,50 @@ export default function EmailBuilderPage() {
     } finally {
       setIsSending(false)
     }
+  }
+
+  const selectedComponentData = selectedComponent 
+    ? components.find(c => c.id === selectedComponent) 
+    : null
+
+  const handleCopyHTML = () => {
+    const componentHTML = components.map(comp => {
+      const styles = Object.entries(comp.styles)
+        .filter(([key]) => !key.includes("Url") && key !== "src" && key !== "alt" && key !== "href")
+        .map(([key, value]) => `${key.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${value}`)
+        .join('; ')
+
+      switch (comp.type) {
+        case "text":
+          return `<div style="${styles}">${comp.content}</div>`
+        case "image":
+          return `<img src="${comp.styles.src || 'https://via.placeholder.com/400x200'}" alt="${comp.styles.alt || 'Image'}" style="${styles}" />`
+        case "button":
+          return `<a href="${comp.styles.href || '#'}" style="display: inline-block; text-decoration: none; ${styles}">${comp.content}</a>`
+        case "social":
+          return `<div style="${styles}">${comp.content}</div>`
+        case "divider":
+          return `<hr style="${styles}" />`
+        default:
+          return ""
+      }
+    }).join("\n")
+
+    navigator.clipboard.writeText(componentHTML)
+    toast.success("HTML copied to clipboard!", {
+      duration: 2000,
+      position: "bottom-right",
+      icon: "📋",
+    })
+  }
+
+  const handleCopyEmail = (email: string) => {
+    navigator.clipboard.writeText(email)
+    toast.success("Email copied to clipboard!", {
+      duration: 2000,
+      position: "bottom-right",
+      icon: "📧",
+    })
   }
 
   const loadTemplate = (templateComponents: EmailComponent[]) => {
@@ -541,6 +657,12 @@ export default function EmailBuilderPage() {
                   </div>
                 </div>
                 
+                <Input
+                  placeholder="📝 Subject"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  className="w-40 dark:bg-gray-700 dark:border-gray-600"
+                />
                 <Button
                   onClick={handleCopyHTML}
                   variant="outline"
@@ -565,6 +687,23 @@ export default function EmailBuilderPage() {
                   <Send className="h-4 w-4 mr-2" />
                   Send
                 </LoadingButtonEnhanced>
+                <Button
+                  onClick={handleSendEmail}
+                  disabled={!emailRecipient || isSending}
+                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
+                >
+                  {isSending ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Send
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           </div>
@@ -573,6 +712,7 @@ export default function EmailBuilderPage() {
 
       <div className="flex h-[calc(100vh-80px)]">
         <DragDropContext onDragEnd={handleDragEnd}>
+          {/* Left Sidebar - Components */}
           <div className="w-80 bg-white dark:bg-gray-800 border-r dark:border-gray-700 overflow-y-auto">
             <div className="p-4">
               <Tabs defaultValue="components" className="w-full">
@@ -788,6 +928,8 @@ export default function EmailBuilderPage() {
                         }
                         ])}
                         disabled={isSendLoading}
+                          }
+                        ])}
                       >
                         <div className="text-left">
                           <p className="font-medium">Newsletter</p>
@@ -854,6 +996,22 @@ export default function EmailBuilderPage() {
                             />
                           </div>
                         )}
+                          <Badge variant="outline" className="capitalize">
+                            {selectedComponentData.type}
+                          </Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div>
+                          <Label htmlFor="content">Content</Label>
+                          <Textarea
+                            id="content"
+                            value={selectedComponentData.content}
+                            onChange={(e) => updateComponent(selectedComponentData.id, { content: e.target.value })}
+                            className="mt-1 dark:bg-gray-800 dark:border-gray-600"
+                            rows={3}
+                          />
+                        </div>
                         
                         {selectedComponentData.type === "text" && (
                           <>
@@ -868,6 +1026,10 @@ export default function EmailBuilderPage() {
                                 })}
                                 className="mt-1 dark:bg-gray-800 dark:border-gray-600"
                                 disabled={isSendLoading}
+                                onChange={(e) => updateComponent(selectedComponentData.id, {
+                                  styles: { ...selectedComponentData.styles, fontSize: `${e.target.value}px` }
+                                })}
+                                className="mt-1 dark:bg-gray-800 dark:border-gray-600"
                               />
                             </div>
                             <div>
@@ -953,6 +1115,7 @@ export default function EmailBuilderPage() {
             </div>
           </div>
 
+          {/* Main Canvas */}
           <div className="flex-1 bg-gray-100 dark:bg-gray-900 overflow-auto">
             <div className="p-6">
               <div className={`mx-auto bg-white dark:bg-gray-800 shadow-xl rounded-lg border dark:border-gray-700 transition-all ${
@@ -988,6 +1151,11 @@ export default function EmailBuilderPage() {
                       }`}>
                         Subject: {subjectCharCount}/{subjectCharLimit}
                       </span>
+                    <div className="text-sm font-medium dark:text-gray-300">
+                      {previewMode === "mobile" ? "📱 Mobile Preview" : "🖥️ Desktop Preview"}
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      {components.length} components
                     </div>
                   </div>
                 </div>
