@@ -1,3 +1,4 @@
+import { emailRetryQueue } from "@/lib/queue/emailQueue"
 import type { EmailRequest, EmailResponse, EmailProvider, EmailServiceConfig, QueuedEmail } from "./types"
 import { ResendProvider } from "./providers/ResendProvider"
 import { MockEmailProviderA } from "./providers/MockEmailProviderA"
@@ -62,13 +63,18 @@ export class EmailService {
       this.circuitBreakers.set(provider.name, new CircuitBreaker(this.config.circuitBreaker, provider.name))
     })
 
-    if (this.config.enableQueue) {
+    if (this.config.enableQueue && !emailRetryQueue) {
       this.startQueueProcessor()
     }
 
     this.logger.info("Email service initialized with providers:", {
       providers: this.providers.map((p) => p.name),
-    })
+    });
+
+     this.logger.info("Redis retry queue enabled", {
+        redis: !!emailRetryQueue,
+     });
+  
   }
 
   async sendEmail(request: EmailRequest, idempotencyKey?: string): Promise<EmailResponse> {
@@ -203,18 +209,23 @@ export class EmailService {
     throw lastError || new Error("All providers failed")
   }
 
-  private addToQueue(request: EmailRequest, requestId: string): void {
-    const queuedEmail: QueuedEmail = {
-      id: requestId,
-      request,
-      attempts: 0,
-      nextRetry: new Date(Date.now() + this.config.retry.baseDelay),
-      createdAt: new Date(),
-    }
-
-    this.emailQueue.push(queuedEmail)
-    this.logger.info(`Added email to queue`, { requestId })
+  private async addToQueue(request: EmailRequest, requestId: string): Promise<void> {
+  const queuedEmail: QueuedEmail = {
+    id: requestId,
+    request,
+    attempts: 0,
+    nextRetry: new Date(Date.now() + this.config.retry.baseDelay),
+    createdAt: new Date(),
   }
+
+  if (emailRetryQueue) {
+    await emailRetryQueue.add("retry-email", queuedEmail)
+    this.logger.info("Added email to Redis retry queue", { requestId })
+  } else {
+    this.emailQueue.push(queuedEmail)
+    this.logger.info("Added email to in-memory queue (Redis unavailable)", { requestId })
+  }
+}
 
   private startQueueProcessor(): void {
     this.queueProcessor = setInterval(() => {
@@ -222,46 +233,50 @@ export class EmailService {
     }, this.config.queueProcessingInterval)
   }
 
-  private async processQueue(): Promise<void> {
-    if (this.emailQueue.length === 0) return
+ private async processQueue(): Promise<void> {
+  // If Redis is enabled, worker handles retries
+  if (emailRetryQueue) {
+    return
+  }
 
-    const now = new Date()
-    const readyEmails = this.emailQueue.filter((email) => email.nextRetry <= now)
+  // Fallback: in-memory queue processing
+  if (this.emailQueue.length === 0) return
 
-    for (const queuedEmail of readyEmails) {
-      try {
-        await this.sendEmail(queuedEmail.request, queuedEmail.id)
+  const now = new Date()
+  const readyEmails = this.emailQueue.filter((email) => email.nextRetry <= now)
 
-        // Remove from queue on success
+  for (const queuedEmail of readyEmails) {
+    try {
+      await this.sendEmail(queuedEmail.request, queuedEmail.id)
+      this.emailQueue = this.emailQueue.filter((email) => email.id !== queuedEmail.id)
+      this.logger.info(`Successfully processed queued email`, { requestId: queuedEmail.id })
+    } catch (error) {
+      queuedEmail.attempts++
+
+      if (queuedEmail.attempts >= this.config.retry.maxAttempts) {
         this.emailQueue = this.emailQueue.filter((email) => email.id !== queuedEmail.id)
-        this.logger.info(`Successfully processed queued email`, { requestId: queuedEmail.id })
-      } catch (error) {
-        queuedEmail.attempts++
+        this.logger.error(`Removing email from queue after max attempts`, {
+          requestId: queuedEmail.id,
+          attempts: queuedEmail.attempts,
+        })
+      } else {
+        const delay = Math.min(
+          this.config.retry.baseDelay *
+            Math.pow(this.config.retry.backoffMultiplier, queuedEmail.attempts),
+          this.config.retry.maxDelay,
+        )
 
-        if (queuedEmail.attempts >= this.config.retry.maxAttempts) {
-          // Remove from queue after max attempts
-          this.emailQueue = this.emailQueue.filter((email) => email.id !== queuedEmail.id)
-          this.logger.error(`Removing email from queue after max attempts`, {
-            requestId: queuedEmail.id,
-            attempts: queuedEmail.attempts,
-          })
-        } else {
-          // Schedule next retry
-          const delay = Math.min(
-            this.config.retry.baseDelay * Math.pow(this.config.retry.backoffMultiplier, queuedEmail.attempts),
-            this.config.retry.maxDelay,
-          )
-          queuedEmail.nextRetry = new Date(Date.now() + delay)
+        queuedEmail.nextRetry = new Date(Date.now() + delay)
 
-          this.logger.info(`Rescheduled queued email for retry`, {
-            requestId: queuedEmail.id,
-            nextRetry: queuedEmail.nextRetry,
-            attempts: queuedEmail.attempts,
-          })
-        }
+        this.logger.info(`Rescheduled queued email for retry`, {
+          requestId: queuedEmail.id,
+          nextRetry: queuedEmail.nextRetry,
+          attempts: queuedEmail.attempts,
+        })
       }
     }
   }
+}
 
   private generateRequestId(request: EmailRequest): string {
     const hash = Buffer.from(`${request.to}-${request.subject}-${request.body}-${Date.now()}`).toString("base64")
