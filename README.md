@@ -55,123 +55,124 @@ Real-time email monitoring with:
 ## 🚀 Quick Start
 
 ### 1. **Installation**
-\`\`\`bash
-# Clone the repository
+#### Clone the repository
+```
 git clone https://github.com/Harshi-max/reliable-email-delivery.git
-
 cd reliable-email-delivery
-
-# Install dependencies
+```
+#### Install dependencies
+```
 npm install
 or 
 npm install --legacy-peer-deps
-
-# Start development server
+```
+#### Start development server
+```
 npm run dev
-\`\`\`
-# Create .env.local 
+```
+#### Create `.env.local`
+```
 RESEND_API_KEY=your_resend_api_key
-
-# Note 
+```
+#### Note 
 Resend has a limit in sending mails so change the key to send mails
-
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ System Architecture & Resilience Flow
+The service follows **SOLID principles** and a **Clean Architecture** pattern. It abstracts complex resilience logic away from the business logic using a layered orchestration approach.
 
-The service follows **SOLID principles** and implements a **clean architecture**:
+### 🔄 Email Request Lifecycle
+The following diagram illustrates how a request moves through the safety layers before reaching a provider.
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant O as EmailService Orchestrator
+    participant I as IdempotencyManager
+    participant RL as RateLimiter (Token Bucket)
+    participant CB as CircuitBreaker
+    participant P1 as Resend (Primary)
+    participant P2 as SendGrid (Fallback)
 
-\`\`\`
+    C->>O: sendEmail(payload)
+    O->>I: Check Request ID
+    alt Duplicate Found
+        I-->>O: Return Cached Result
+        O-->>C: Success (Idempotent)
+    else New Request
+        O->>RL: Consume Token
+        alt Rate Limited
+            RL-->>O: Throw 429 Error
+            O-->>C: Error (Try again later)
+        else Token Granted
+            O->>CB: Execute Request
+            alt Circuit Closed
+                O->>P1: Try Sending
+                P1--X O: 500/Timeout
+                O->>CB: Record Failure
+                Note over O, P2: Strategy: Failover to Fallback
+                O->>P2: Try Sending
+                P2-->>O: 200 OK
+                O-->>C: Success (via Fallback)
+            else Circuit Open
+                CB-->>O: Fast Fail
+                O-->>C: Error (Service Unavailable)
+            end
+        end
+    end
+```
 
-EmailService (Main Orchestrator)
-
-├── 📦 Providers (Strategy Pattern)
-
-│   ├── 🔹 ResendProvider (Primary)
-
-│   ├── 🔸 SendGridProvider (Fallback)
-
-│   ├── 📧 NodemailerProvider (SMTP)
-
-│   └── 🧪 MockProviders (Testing)
-
-├── 🛠️ Resilience Layers
-
-│   ├── 🔄 RetryManager ....... [Exponential Backoff]
-
-│   ├── 🚦 RateLimiter ........ [Token Bucket]
-
-│   └── ⚡ CircuitBreaker ...... [Failure Detection]
-
-├── 🛡️ Security & Integrity
-
-│   ├── 🔒 IdempotencyManager . [Duplicate Prevention]
-
-│   ├── 🔍 ErrorNormalizer .... [Smart Error Analysis]
-
-│   └── 📋 Queue System ....... [Failed Email Recovery]
-
-└── 📊 Observability
-    └── 📝 Logger ............. [Structured JSON Logging]
+### **🚦 Resilience State Machine**
+Our Circuit Breaker protects downstream providers from being overwhelmed during outages.
+```mermaid
+stateDiagram-v2
+    [*] --> Closed
+    Closed --> Open : Failure Threshold Reached
+    Open --> HalfOpen : Reset Timeout Reached
+    HalfOpen --> Closed : Success (Probe Passed)
+    HalfOpen --> Open : Failure (Probe Failed)
     
+    note right of Closed : Traffic flows normally
+    note right of Open : Traffic blocked (Immediate Error)
+```
 
-    
-### **Test Coverage**
-The service includes comprehensive unit tests covering:
-- ✅ Email sending functionality
-- ✅ Retry mechanisms with exponential backoff
-- ✅ Rate limiting behavior
-- ✅ Circuit breaker state transitions
-- ✅ Idempotency handling
-- ✅ Provider fallback logic
-- ✅ Queue operations
+### **🌐 Web Interface**
 
-## 🌐 Web Interface
+#### 🖥️ Monitoring Dashboard
+The service includes a built-in dashboard at `/dashboard` for real-time tracking of:
+* Provider health status and circuit breaker states.
+* Live email logs with smart error analysis.
+* System performance metrics and success rates.
 
-### **Pages Available**
-- **`/`** - Beautiful animated landing page
-- **`/dashboard`** - Full-featured email management dashboard
-- **`/status`** - System health and provider status
-- **`/setup`** - Provider configuration guide
+### **📚 Deep Dive Documentation**
+For detailed technical guides on the internal mechanics, refer to:
 
-### **Dashboard Features**
-- 📊 Real-time metrics and analytics
-- 📧 Email composition and sending
-- 📈 Provider health monitoring
-- 📋 Activity logs and history
-- ⚙️ System configuration status
-- 🔍 **Smart error explanations** - Plain-language error details with suggested fixes
+**[Provider Strategy Guide](PROVIDERS.md) -** How to add new email providers.
+**[Error Normalization](ERROR_NORMALIZATION.md) -** How we map raw API errors to Smart Errors.
 
-## 🔍 Error Normalization
+---
 
-The service includes an intelligent error normalization system that transforms cryptic provider errors into actionable insights:
+## 🛡️ Resilience & Reliability
 
-**What you see instead of raw errors:**
-- 📝 **Clear explanation**: "DNS lookup failed - unable to find the email provider's server"
-- 🏷️ **Error category**: Authentication, Network, Rate Limiting, etc.
-- ⚡ **Severity level**: Temporary, Permanent, or Critical
-- 💡 **Suggested action**: "Check internet connection. If persistent, the provider may be experiencing an outage"
-- 🔄 **Smart decisions**: Automatic retry and fallback recommendations
+The service is built to survive provider outages and network instability. 
 
-See [ERROR_NORMALIZATION.md](ERROR_NORMALIZATION.md) for detailed documentation and examples.
+### **🔍 Smart Error Normalization**
+We transform cryptic provider-specific errors into actionable **Smart Errors**. This allows the orchestrator to decide instantly whether to retry, switch providers, or stop.
+*Detailed mapping available in:* [ERROR_NORMALIZATION.md](./ERROR_NORMALIZATION.md)
 
-## 🔒 Security & Best Practices
+### **🚦 Advanced Guardrails**
+* **Rate Limiting:** Token-bucket implementation to stay within provider quotas.
+* **Idempotency:** Request deduplication via 24-hour TTL keys to prevent double-billing/sending.
+* **Circuit Breaking:** Automatic provider isolation during periods of high latency or error rates.
+* **Security:** Native support for `.env.local` and zero-leak logging principles.
 
-### **Environment Variables**
-- All API keys stored securely in environment variables
-- No sensitive data in logs or client-side code
-- Proper error handling without exposing internals
+### **✅ Verification**
+```bash
+# Run the resilience test suite
+npm run test
+```
 
-### **Rate Limiting**
-- Token bucket algorithm prevents abuse
-- Configurable limits per time window
-- Graceful degradation under load
-
-### **Idempotency**
-- Request deduplication prevents duplicate sends
-- 24-hour TTL with automatic cleanup
-- Safe retry mechanisms
+---
 
 ## 🚀 Production Deployment
 
@@ -233,12 +234,7 @@ See [ERROR_NORMALIZATION.md](ERROR_NORMALIZATION.md) for detailed documentation 
 4. Ensure all tests pass
 5. Submit a pull request
 
-### **Code Standards**
-- TypeScript strict mode
-- ESLint + Prettier formatting
-- Comprehensive test coverage
-- Clear documentation
-
+**_We welcome contributions! Please refer to our [Contribution Guide](CONTRIBUTING.md) for setup instructions, coding standards, and our pull request process._**
 
 ## 🙏 Acknowledgments
 
@@ -254,7 +250,5 @@ Built with modern technologies and inspired by enterprise email services:
 <div align="center">
 
 **⭐ Star this repository if you find it helpful!**
-
-
 
 </div>
