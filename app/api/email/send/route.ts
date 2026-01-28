@@ -4,34 +4,35 @@ import { ResendProvider } from "@/lib/email/providers/ResendProvider"
 import { MockEmailProviderA } from "@/lib/email/providers/MockEmailProviderA"
 import type { EmailRequest } from "@/lib/email/types"
 
-// Create email service with real Resend provider
+/**
+ * Create email service with proper provider handling
+ */
 const createEmailService = () => {
   const providers = []
 
-  // Add Resend provider with your API key
-  // Use environment variable
-providers.push(new ResendProvider(process.env.RESEND_API_KEY!))
-  if(!process.env.RESEND_API_KEY) {
-    console.warn("⚠️ RESEND_API_KEY is not set. Using mock provider for testing.")
+  if (process.env.RESEND_API_KEY) {
+    providers.push(new ResendProvider(process.env.RESEND_API_KEY))
+  } else {
+    console.warn("⚠️ RESEND_API_KEY is not set. Falling back to mock provider.")
   }
-  
-  // Add mock provider as fallback
+
+  // Always keep mock provider as fallback
   providers.push(new MockEmailProviderA())
 
   return new EmailService({
     providers,
     retry: {
-      maxAttempts: 10,
+      maxAttempts: 5,
       baseDelay: 1000,
       maxDelay: 10000,
       backoffMultiplier: 2,
     },
     rateLimit: {
-      maxRequests: 10000,
+      maxRequests: 100,
       windowMs: 60000,
     },
     circuitBreaker: {
-      failureThreshold: 10,
+      failureThreshold: 5,
       recoveryTimeout: 30000,
       monitoringPeriod: 60000,
     },
@@ -44,74 +45,87 @@ const emailService = createEmailService()
 
 export async function POST(request: NextRequest) {
   try {
+    // Ensure JSON request
+    if (!request.headers.get("content-type")?.includes("application/json")) {
+      return NextResponse.json(
+        { error: "Invalid content type. Expected application/json" },
+        { status: 415 }
+      )
+    }
+
     const body = await request.json()
     const { to, subject, body: emailBody, html } = body
 
+    // Required field validation
     if (!to || !subject || (!emailBody && !html)) {
-      return NextResponse.json({ error: "Missing required fields: to, subject, and body or html" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Missing required fields: to, subject, and body or html" },
+        { status: 400 }
+      )
     }
 
-    // Validate email format
+    // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(to)) {
-      return NextResponse.json({ error: "Invalid email address format" }, { status: 400 })
+    if (typeof to !== "string" || !emailRegex.test(to)) {
+      return NextResponse.json(
+        { error: "Invalid email address format" },
+        { status: 400 }
+      )
     }
 
     const emailRequest: EmailRequest = {
       to,
       subject,
-      body: emailBody || "Email sent via template builder",
-      from: "harshithaarava31@gmail.com", // Resend's verified sender for testing
-      html: html || `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px;">
-            ${subject}
-          </h2>
-          <div style="margin: 20px 0; line-height: 1.6;">
-            ${emailBody ? emailBody.replace(/\n/g, "<br>") : ""}
-          </div>
-          <div style="margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 5px;">
-            <p style="margin: 0; color: #666; font-size: 14px;">
-              This email was sent via the Resilient Email Service demo using Resend.
-            </p>
-          </div>
+      from: process.env.EMAIL_FROM || "onboarding@resend.dev",
+      body: emailBody ?? "Email sent via Resilient Email Service",
+      html:
+        html ??
+        `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+          <h2>${subject}</h2>
+          <p>${emailBody ? emailBody.replace(/\n/g, "<br/>") : ""}</p>
+          <hr />
+          <small>Sent via Resilient Email Service</small>
         </div>
       `,
     }
 
-    console.log(`🚀 Attempting to send email to: ${to}`)
-    console.log(`📧 Subject: ${subject}`)
-    console.log(`🎨 Using ${html ? 'custom template' : 'default template'}`)
+    console.log("📨 Sending email:", { to, subject })
 
     const result = await emailService.sendEmail(emailRequest)
 
-    console.log(`✅ Email sent successfully:`, {
-      id: result.id,
-      status: result.status,
-      provider: result.provider,
-      hasCustomTemplate: !!html
-    })
-
-    return NextResponse.json({
-      id: result.id,
-      status: result.status,
-      provider: result.provider,
-      attempts: result.attempts,
-      message: html ? "Email sent successfully with custom template!" : "Email sent successfully via Resend!",
-    })
+    return NextResponse.json(
+      {
+        id: result.id,
+        status: result.status,
+        provider: result.provider,
+        attempts: result.attempts,
+        message: "Email sent successfully",
+      },
+      { status: 200 }
+    )
   } catch (error) {
-    console.error("❌ Email sending failed:", error)
-    
-    const errorResponse = {
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-      id: Date.now().toString(),
-      attempts: 1,
-      timestamp: new Date().toISOString(),
+    console.error("❌ Email sending error:", error)
+
+    let statusCode = 500
+    let message = "Internal server error"
+
+    if (error instanceof Error) {
+      message = error.message
+
+      if (message.toLowerCase().includes("rate limit")) {
+        statusCode = 429
+      } else if (message.toLowerCase().includes("invalid")) {
+        statusCode = 400
+      }
     }
 
-    // Determine appropriate status code based on error type
-    const statusCode = error instanceof Error && error.message.includes("Rate limit") ? 429 : 500
-
-    return NextResponse.json(errorResponse, { status: statusCode })
+    return NextResponse.json(
+      {
+        error: message,
+        timestamp: new Date().toISOString(),
+      },
+      { status: statusCode }
+    )
   }
 }
